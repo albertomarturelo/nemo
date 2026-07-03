@@ -32,7 +32,7 @@ surfaces → tests → docs).
 | International instruments | `instrumentsInternational` | `instruments international` | `instruments_international` | ⬜ |
 | Instrument price history | `instrumentPrices` | `instruments prices` | `instrument_prices` | ⬜ |
 | Portfolio summary (P&L) | `portfolioSummary` | `portfolio summary` | `portfolio_summary` | ⬜ |
-| Portfolio movements | `portfolioMovements` | `portfolio movements` | `portfolio_movements` | ⬜ |
+| Portfolio movements | `portfolioMovements` | `portfolio movements` | `portfolio_movements` | ✅ |
 
 The endpoint paths for the ⬜ rows are already in `config.ENDPOINTS` (observed
 from the Python `nemo-cli`); each row still needs its wire contract re-observed

@@ -18,7 +18,12 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
     const client = await connect(makeRuntime());
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();
-    expect(names).toEqual(['auth_logout', 'auth_status', 'instruments_local']);
+    expect(names).toEqual([
+      'auth_logout',
+      'auth_status',
+      'instruments_local',
+      'portfolio_movements',
+    ]);
 
     // ADR-006: no sign-in tool, and no tool INPUT FIELD accepts a password.
     expect(names).not.toContain('auth_login');
@@ -53,6 +58,30 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
     const res = await client.callTool({ name: 'instruments_local', arguments: { search: 'BCI' } });
     const payload = JSON.parse(toolText(res));
     expect(payload).toMatchObject({ market: 'local', total: 1 });
+    expect(isError(res)).toBe(false);
+  });
+
+  it('portfolio_movements returns the classified envelope over a live session', async () => {
+    const http = new testing.FakeHttpClient(() => ({
+      json: [
+        {
+          idCajaCuenta: 7,
+          dscCajaCuenta: 'Caja CLP',
+          movimientos: [
+            { movimiento: 'COMISION TRANSACCIÓN BOLSA', abono: 0, cargo: 500, codMoneda: 'CLP' },
+          ],
+        },
+      ],
+    }));
+    const client = await connect(
+      makeRuntime({ http, tokens: new testing.MemoryTokenStore(FRESH_TOKEN) }),
+    );
+    const res = await client.callTool({
+      name: 'portfolio_movements',
+      arguments: { desde: '2026-01-01', hasta: '2026-06-30' },
+    });
+    const payload = JSON.parse(toolText(res));
+    expect(payload.summary.totalCommissions).toBe(500);
     expect(isError(res)).toBe(false);
   });
 
