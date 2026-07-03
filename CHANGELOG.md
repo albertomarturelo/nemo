@@ -18,6 +18,9 @@ core are also tracked in [`packages/core/CHANGELOG.md`](packages/core/CHANGELOG.
   (ADR-005); credential-taking `login` is CLI-only (ADR-006).
 - First read surface across all three packages: local instruments (`nemo
   instruments local` / `instruments_local`).
+- Portfolio cash movements (`nemo portfolio movements` / `portfolio_movements`):
+  classified per kind (dividend/buy/sell/commission/cash_in/cash_out) with
+  per-nemotécnico aggregates; scaffolds the `portfolio` module (#4).
 - CFD context layer: `docs/` (ARCHITECTURE, STACK, CONVENTIONS, ROADMAP,
   vector-contract) + ADRs 001–011, `.claude/skills/`, and CI with context-integrity
   and surface-boundary guards.

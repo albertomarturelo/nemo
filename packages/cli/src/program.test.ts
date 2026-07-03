@@ -58,4 +58,25 @@ describe('nemo CLI', () => {
     expect(JSON.parse(cap.text())).toEqual({ authenticated: true, username: 'me@mail.cl' });
     expect(await tokens.get()).toBe('minted');
   });
+
+  it('portfolio movements → classified JSON envelope from the (faked) portal', async () => {
+    const http = new FakeHttpClient(() => ({
+      json: [
+        {
+          idCajaCuenta: 7,
+          dscCajaCuenta: 'Caja CLP',
+          movimientos: [
+            { movimiento: 'DIV;10-4-2026;BCI;3,5', abono: 3500, cargo: 0, codMoneda: 'CLP' },
+          ],
+        },
+      ],
+    }));
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+    cap = captureStdout();
+    await run(rt, ['portfolio', 'movements', '--desde', '2026-01-01', '--hasta', '2026-06-30']);
+    const payload = JSON.parse(cap.text());
+    expect(payload).toMatchObject({ from: '2026-01-01', to: '2026-06-30' });
+    expect(payload.summary.totalDividends).toBe(3500);
+    expect(payload.buckets[0].movements[0].kind).toBe('dividend');
+  });
 });

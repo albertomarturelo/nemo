@@ -15,6 +15,19 @@ export type {
   LocalInstrumentsPage,
   LocalInstrumentsQuery,
 } from './tasks/instruments.js';
+export { portfolioMovements } from './tasks/portfolio.js';
+export type {
+  MovementKind,
+  Movement,
+  DividendInfo,
+  TradeInfo,
+  DividendSummaryItem,
+  TradeSummaryItem,
+  MovementsSummary,
+  CashBucket,
+  MovementsResult,
+  MovementsQuery,
+} from './tasks/portfolio.js';
 
 // --- seams: the injectable contract a consumer composes a Runtime from ---
 // The Node default adapters + `createNodeRuntime` live in the `./node` subpath

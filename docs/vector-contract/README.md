@@ -21,4 +21,5 @@ Base URL and sub-prefixes are the single source of truth in
 | Auth (SignIn / RefreshToken) | [auth.md](auth.md) | Wired |
 | Instruments — local | [instruments.md](instruments.md) | Wired (local) |
 | Instruments — international / prices | [instruments.md](instruments.md) | Planned |
-| Portfolio — summary / movements | — | Planned |
+| Portfolio — movements | [portfolio.md](portfolio.md) | Wired |
+| Portfolio — summary | [portfolio.md](portfolio.md) | Planned |

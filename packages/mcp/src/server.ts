@@ -13,6 +13,7 @@ import {
 } from '@albertomarturelo/nemo-core';
 import { toolJson, toolText } from './tool-helpers.js';
 import { registerInstrumentsTools } from './tools/instruments.js';
+import { registerPortfolioTools } from './tools/portfolio.js';
 
 const jsonResource = (uri: URL, value: unknown) => ({
   contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(value, null, 2) }],
@@ -77,6 +78,7 @@ export function buildServer(runtime: Runtime): McpServer {
 
   // --- domain read surfaces (one register call per module — append-only) ---
   registerInstrumentsTools(server, runtime);
+  registerPortfolioTools(server, runtime);
 
   return server;
 }
