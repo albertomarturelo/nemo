@@ -61,6 +61,10 @@ Each row's `kind` is derived from its description, observed on the live portal:
 | Rule (on the trimmed description) | `kind` | Parsed |
 | --- | --- | --- |
 | `DIV;<d-m-yyyy>;<nemo>;<amount>` | `dividend` | `{ exDate, nemotecnico, perUnitAmount }` |
+
+> `amount` uses Chilean number formatting — `.` groups thousands and `,` is the
+> decimal separator (e.g. `1.234,56` → `1234.56`), normalised by the parser.
+
 | `COMPRA FONDOS CB - <nemo>` | `buy` | `{ nemotecnico, side: buy }` |
 | `VENTA FONDOS CB - <nemo>` | `sell` | `{ nemotecnico, side: sell }` |
 | exactly `COMISION TRANSACCIÓN BOLSA` | `commission` | — |

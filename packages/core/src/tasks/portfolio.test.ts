@@ -62,8 +62,13 @@ describe('classifyMovement', () => {
   });
 
   it('classifies a RUT-described row by credit/debit direction', () => {
-    expect(classifyMovement('12.345.678-9', 200_000, 0).kind).toBe('cash_in');
-    expect(classifyMovement('12.345.678-9', 0, 200_000).kind).toBe('cash_out');
+    expect(classifyMovement('11.111.111-1', 200_000, 0).kind).toBe('cash_in');
+    expect(classifyMovement('11.111.111-1', 0, 200_000).kind).toBe('cash_out');
+  });
+
+  it('parses a thousands-formatted dividend amount (Chilean number format)', () => {
+    const r = classifyMovement('DIV;1-1-2026;BCI;1.234,56', 1000, 0);
+    expect(r.dividend?.perUnitAmount).toBe(1234.56);
   });
 
   it('falls back to other for an unrecognised description', () => {

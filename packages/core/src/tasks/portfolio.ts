@@ -323,7 +323,11 @@ function toIsoFromDmy(dmy: string): string | null {
 }
 
 function parseAmount(text: string): number {
-  const n = Number(text.replace(/,/g, '.'));
+  // Chilean number formatting: '.' groups thousands, ',' is the decimal separator.
+  // Normalise only when a comma is present; a bare-dot value is already decimal
+  // (e.g. "3.5"). So "1.234,56" → 1234.56 and "12,34" → 12.34.
+  const normalised = text.includes(',') ? text.replace(/\./g, '').replace(',', '.') : text;
+  const n = Number(normalised);
   return Number.isFinite(n) ? n : 0;
 }
 
