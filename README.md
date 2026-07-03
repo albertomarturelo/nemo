@@ -8,8 +8,9 @@ corredora chilena (actualmente **Vector Capital**,
 `portalclientes.vectorcapital.cl`). Pensado para usarse tanto en **Claude Code**
 como en **Claude Desktop**.
 
-Reescritura desde cero en TypeScript del `nemo-cli` (Python) ya probado: el
-conocimiento del portal y los guardrails se **portan**; el código se escribe nuevo.
+Un solo núcleo de dominio respalda ambas superficies (CLI + MCP), así que los
+guardrails (manejo de credenciales, auditoría, renovación de token) aplican sin
+importar cuál esté al frente.
 
 > ⚠️ **Herramienta no oficial.** Este proyecto **no está afiliado, avalado ni
 > patrocinado** por Vector Capital S.A. Corredores de Bolsa ni por ninguna otra
