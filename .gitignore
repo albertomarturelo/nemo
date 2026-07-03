@@ -1,0 +1,35 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+
+# test / coverage
+coverage/
+.vitest/
+
+# local broker session state — NEVER commit the cached bearer token / audit log
+.nemo/
+
+# secrets / env
+.env
+.env.*
+!.env.example
+
+# CFD working state — local-only, each clone keeps its own notes (ADR-001)
+docs/CURRENT_STATUS.md
+
+# logs
+*.log
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# claude local overrides + runtime
+.claude/settings.local.json
+.claude/statusline.log

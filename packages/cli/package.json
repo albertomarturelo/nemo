@@ -1,0 +1,17 @@
+{
+  "name": "@nemo/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Human-facing CLI for the Vector Capital portal. Each command is a thin call into @albertomarturelo/nemo-core tasks (ADR-003).",
+  "bin": {
+    "nemo": "./dist/main.js"
+  },
+  "dependencies": {
+    "@albertomarturelo/nemo-core": "workspace:*",
+    "commander": "^12.1.0"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

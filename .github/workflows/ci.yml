@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build + Lint + Format + Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # No `version:` here — action-setup reads it from package.json
+      # `packageManager` (pnpm@10.x), the single source of truth.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install (frozen)
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck + build (tsc -b)
+        run: pnpm build
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Test
+        run: pnpm test
+
+  validate-context:
+    name: Validate context (ADRs + core boundary + credentials + public-repo leaks)
+    runs-on: ubuntu-latest
+    # Pure git/bash checks — no install needed, so this gate is green from the
+    # first commit, before any dependency lands.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ADR index integrity
+        # Every docs/decisions/NNN-*.md must be listed in _index.md, and every
+        # link from _index.md must point to a real file.
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in docs/decisions/[0-9]*.md; do
+            name=$(basename "$f")
+            if ! grep -q "$name" docs/decisions/_index.md; then
+              echo "::error file=docs/decisions/_index.md::ADR $name exists on disk but is not listed in the index."
+              fail=1
+            fi
+          done
+          while IFS= read -r ref; do
+            if [ -n "$ref" ] && [ ! -f "$ref" ]; then
+              echo "::error file=docs/decisions/_index.md::Index links to missing file: $ref"
+              fail=1
+            fi
+          done < <(grep -oE 'docs/decisions/[0-9]+-[a-zA-Z0-9-]+\.md' docs/decisions/_index.md | sort -u)
+          exit $fail
+
+      - name: ADR completeness (5 mandatory sections)
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in docs/decisions/[0-9]*.md; do
+            for section in '## Status' '## Context' '## Decision' '## Alternatives Considered' '## Consequences'; do
+              if ! grep -qxF "$section" "$f"; then
+                echo "::error file=$f::Missing required ADR section '$section'."
+                fail=1
+              fi
+            done
+          done
+          exit $fail
+
+      - name: Surface boundary (ADR-003 / ADR-006 — surfaces call the core barrel only)
+        # The only importable subpaths from a surface are `/node` (composition
+        # root) and — ONLY inside packages/cli — `/cli` (the password-taking
+        # `login` the MCP must never reach, ADR-006). Anything else bypasses the
+        # task layer's renewal / audit rails.
+        run: |
+          set -euo pipefail
+          if git grep -nP "from ['\"]@albertomarturelo/nemo-core/(?!(cli|node)['\"])" -- 'packages/cli/**/*.ts' 'packages/mcp/**/*.ts'; then
+            echo "::error::A surface imports a @albertomarturelo/nemo-core internal subpath — ADR-003 forbids. Go through the task layer (allowed: /node; /cli only from packages/cli)."
+            exit 1
+          fi
+          if git grep -nE "from ['\"]@albertomarturelo/nemo-core/cli['\"]" -- 'packages/mcp/**/*.ts'; then
+            echo "::error::The MCP package imports @albertomarturelo/nemo-core/cli (login takes a password) — ADR-006 forbids."
+            exit 1
+          fi
+          echo "Surface boundary guard: CLI + MCP reach the core only via tasks (+ /node, CLI-only /cli)."
+
+      - name: No hard-coded portal URL outside config (ADR-004)
+        # The base URL is a constant in config; a literal host anywhere else in
+        # surface/task source (tests + the config module excluded) bypasses ADR-004.
+        run: |
+          set -euo pipefail
+          hits=$(git grep -nE 'portalclientes\.vectorcapital\.cl' -- 'packages/*/src/**/*.ts' \
+            ':!packages/core/src/config/index.ts' ':!packages/*/src/**/*.test.ts' \
+            ':!packages/*/src/**/test-helpers.ts' || true)
+          if [ -n "$hits" ]; then
+            echo "$hits"
+            echo "::error::Hard-coded portal host outside config — ADR-004 forbids. Read it from @albertomarturelo/nemo-core config.ENDPOINTS."
+            exit 1
+          fi
+          echo "ADR-004 guard: no hard-coded portal host outside config."
+
+      - name: No sensitive data committed (ADR-012 — public repo)
+        # Backstop for the public-repo posture. The PR review + template carry the
+        # human "no sensitive data" gate; this catches the two mechanical leaks.
+        run: |
+          set -euo pipefail
+          # (a) No secret/credential FILE is tracked (defense in depth beyond .gitignore).
+          if git ls-files | grep -nE '(^|/)\.env($|\.)|(^|/)\.nemo/|(^|/)token\.json$|\.(pfx|p12)$'; then
+            echo "::error::A secret/credential file is tracked — ADR-012 forbids (public repo)."
+            exit 1
+          fi
+          # (b) No full JWT literal in tracked non-test source/docs. Synthetic tokens
+          #     are built at runtime in tests; vector-contract examples are truncated.
+          if git grep -nP 'eyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{6,}' -- \
+              ':!*.test.ts' ':!**/test-helpers.ts' ':!docs/vector-contract/**'; then
+            echo "::error::A JWT-shaped literal is committed — ADR-012 forbids (rotate the token AND rewrite history)."
+            exit 1
+          fi
+          echo "ADR-012 guard: no secret files / JWT literals tracked."

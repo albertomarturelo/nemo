@@ -1,0 +1,140 @@
+# Conventions
+
+This file grows as real work surfaces patterns (corrections become conventions —
+ADR-016). It starts with the load-bearing rules ported from the proven Python
+`nemo-cli`, adapted to TypeScript.
+
+## Code style
+
+- TypeScript `strict` everywhere, plus `noUncheckedIndexedAccess` and
+  `exactOptionalPropertyTypes`. No `any` without an inline justification; prefer
+  `unknown` + narrowing at boundaries.
+- ESLint + Prettier are authoritative. Format before commit.
+- Comments explain WHY, not WHAT — non-obvious constraints, portal quirks, subtle
+  invariants. Never restate the code.
+- ESM only (`"type": "module"`). Named exports; avoid default exports.
+- **NodeNext modules: relative imports end in `.js`** (e.g. `from
+  './session.js'`) so the compiled output runs directly on Node; bare specifiers
+  (`@albertomarturelo/nemo-core`, `commander`) stay extensionless. `tsc` errors on a missing
+  extension (ADR-009).
+
+## Architecture patterns
+
+- **Single-env (prod) is the contract.** No `NEMO_ENV` switch. The base URL and
+  endpoint paths are constants in `@albertomarturelo/nemo-core` config; never hard-code a URL
+  anywhere else (ADR-004).
+- **Surfaces call `@albertomarturelo/nemo-core` tasks only.** CLI and MCP never reach past the
+  task layer into `auth/session` or an adapter — that bypasses token renewal and
+  the audit receipt. CI enforces this with a surface-boundary grep (ADR-003).
+- **The core is the data layer; surfaces present. JSON is the default output.**
+  `@albertomarturelo/nemo-core` tasks return plain, JSON-serializable objects (no `Date` /
+  `Map` / `Set`, no human formatting) — that is the library / integration
+  contract. The MCP surface emits `JSON.stringify`; the CLI emits JSON by DEFAULT
+  (`--human` for readable text). A command computes its result once and renders it
+  through the shared `emit(data, humanFn)`. STDOUT carries only the result (JSON
+  pipeable to `jq`); diagnostics go to STDERR (ADR-012).
+- **External dependencies sit behind injectable seams.** `HttpClient`,
+  `TokenStore`, `Clock`, `AuditSink` are interfaces in `@albertomarturelo/nemo-core` with Node
+  defaults; tests inject fakes so they never touch the real portal / filesystem /
+  clock. The core is otherwise a normal Node library (ADR-003).
+- **Every authenticated portal call goes through `auth/session.request()`.** That
+  function owns token retrieval, the proactive renewal (`RefreshToken` when the
+  cached token is within `PROACTIVE_REFRESH_SECONDS` of `exp`), and the reactive
+  401-refresh-once flow. Calling the `HttpClient` seam directly from a task
+  bypasses re-authentication and causes silent failures when tokens expire. The
+  ONLY exceptions are the two bootstrap calls in `auth/service` (`signIn`,
+  `refreshToken`). On renewal failure `request()` clears the token and raises
+  `SessionExpiredError` ("run `nemo auth login`") — it never re-signs-in, because
+  there are no stored credentials (ADR-005 / ADR-006).
+- **Authentication is an explicit verb, not a side-effect.** Domain tasks never
+  mint a session; they consume a cached token via `request()` or raise
+  `NotAuthenticatedError`. Only `login` mints (and it is CLI-only).
+- **The password never enters the main barrel.** `login` (credential-taking) is
+  exported ONLY from `@albertomarturelo/nemo-core/cli`. The MCP server imports the main
+  barrel, so it physically cannot wire a sign-in tool. CI greps for both the
+  subpath import in `packages/mcp` and any `password`/`clave` MCP input field
+  (ADR-006).
+- **Validate MCP tool inputs with `zod` at the boundary (ADR-011).** The SDK
+  derives the protocol JSON Schema from the zod shape. Validation stays at the MCP
+  edge — internal domain types are plain TypeScript, never zod.
+
+## Broker domain rules
+
+- **No third-party broker libraries.** Every endpoint, param name, and response
+  field is derived from first-hand observation of the live portal and cited in a
+  code comment, e.g. `// observed at <URL> on <YYYY-MM-DD>` (ADR-004).
+- **Wire parsing is defensive + curated.** Validate the envelope shape (`typeof`
+  / `Array.isArray`), then project each row into a curated, alias-tolerant shape
+  with `asStr` / `asInt` / `asOptionalStr` helpers (a missing field becomes an
+  empty/zero/`null`, never a crash). A shape that cannot be found at all raises
+  `ContractError` ("the contract drifted") — never retry, re-observe. Capture a
+  redacted real response in `docs/vector-contract/<surface>.md` before integrating
+  a new endpoint; do NOT assume field names from external docs.
+- **Pass the portal's error messages through unchanged.** A non-2xx from a read
+  raises `ApiError(status, verbatimBody)`; the CLI surfaces it, the MCP wraps it
+  as an `isError` result with the text intact. Opaque translations waste the
+  user's time.
+- **Never retry after an auth block.** A failed renewal clears the token and
+  stops; the user re-runs `nemo auth login`.
+- **Domain read surfaces own a per-module file + a register fn (no barrel
+  churn).** Each module ships `cli/src/commands/<mod>.ts`
+  (`register<Mod>(program, runtime)`) and `mcp/src/tools/<mod>.ts`
+  (`register<Mod>Tools(server, runtime)`); `program.ts` / `server.ts` call it from
+  ONE append-only line. `instruments` sets the pattern (ADR-007).
+
+## Security, secrets & PII
+
+- **This repository is PUBLIC and permanent (ADR-012).** Every commit, PR, issue,
+  branch name, code comment, doc, and test fixture is world-readable and indexed
+  the moment it is pushed — deleting later does not un-leak it. Nothing sensitive
+  goes into any git/GitHub artifact: no credentials/passwords, no bearer
+  tokens/JWTs/cookies, no `.env` / `.nemo/` / `token.json`, and no real account
+  PII (email, RUT, holdings, amounts, order/movement data, account ids). Tests and
+  `docs/vector-contract/` use SYNTHETIC data only. This is a mandatory PR-review
+  gate (`review-pr` skill + PR-template checkbox) with a CI backstop.
+- **Credentials never touch disk and never reach the LLM.** The password is
+  entered at a hidden CLI prompt (`readline` with echo muted) — never a flag, env
+  var, or argument (no shell-history / argv / process-list leak) — held in memory
+  for one `signIn`, then discarded. Only the resulting bearer token is cached, in
+  a per-user JSON file under `~/.nemo/`. No MCP tool accepts a password (ADR-006).
+- **Never commit** `.env`, anything under `.nemo/`, or a real bearer token.
+  `.gitignore` blocks them — re-verify before any `git add`.
+- **Audit every state-touching op** via the `AuditSink`: `{ ts, action, result,
+  durationMs?, ...extra }`. Keys whose name matches
+  `password|clave|token|secret|cookie|authorization` are dropped before the line
+  is written. The log is a receipt, never a gatekeeper — write failures degrade
+  silently.
+- **PII hygiene.** Real account data (email, holdings, amounts, real
+  nemotécnicos tied to a person) never lands in a tracked file or a test fixture.
+  Tests use synthetic values only.
+
+## Testing
+
+- Tests must NOT hit the production portal. Every test injects the in-memory
+  `HttpClient` fake; the token store and clock are fakes too.
+- Reproduce CI conditions before pushing (no ambient credentials needed — there
+  are none).
+- Mirror the `src/` tree: `<module>.test.ts` beside the module (vitest).
+
+## Naming
+
+- Files: kebab-case `.ts` modules. Tests: `<module>.test.ts`.
+- Domain terms stay in Spanish where they are Spanish (`nemotecnico`,
+  `cartera`, `movimientos`). Don't anglicize broker terminology.
+- User-facing surfaces (CLI verbs, MCP tool names) are English where no
+  entrenched Spanish term exists (`status`, `login`, `instruments`), Spanish where
+  one does.
+
+## Commits & PRs
+
+- One topic per commit. Conventional Commits subject (`feat(scope): …`),
+  ≤72 chars. English everywhere (commits, branches, PRs).
+- **One feature / work-unit per PR.** Split before opening the PR.
+- **Status docs go in a SEPARATE commit from feature code.**
+  `CURRENT_STATUS.md` / `ROADMAP.md` bookkeeping is its own commit; the feature
+  commit carries code plus its tightly-coupled docs only (the ADR + any
+  `vector-contract/*.md`).
+- **No AI attribution anywhere** — no `Co-Authored-By`, no "Generated with",
+  no `🤖`, in any artifact that lands in git or on GitHub. Authorship is the
+  human owner (ADR-022 lineage from nemo-cli).
+- `docs/` updates ship in the SAME commit as the code that motivated them.
