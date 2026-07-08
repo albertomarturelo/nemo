@@ -126,8 +126,8 @@ function asInt(value: unknown): number {
 // US-listed assets the portal serves under `/frontoffice/shared/Asset`. Mirrors
 // the local listing shape ({ market, page, pageSize, total, items }) but the wire
 // envelope differs: rows live under `items` (not `result`) and the count is
-// `totalCount` (not `total`). See docs/vector-contract/instruments.md.
-// observed at https://portalclientes.vectorcapital.cl/api/frontoffice/shared/Asset on 2026-07-08
+// `totalCount` (not `total`). Observed at the portal's `/frontoffice/shared/Asset`
+// endpoint on 2026-07-08; full request/response in docs/vector-contract/instruments.md.
 
 /** A curated international (US-listed) instrument row. */
 export interface InternationalInstrument {
