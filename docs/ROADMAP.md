@@ -29,14 +29,14 @@ surfaces → tests → docs).
 | Session status | `authStatus` | `auth status` | `auth_status` + `nemo://session` | ✅ |
 | Log out | `logout` | `auth logout` | `auth_logout` | ✅ |
 | Local instruments | `instrumentsLocal` | `instruments local` | `instruments_local` | ✅ |
-| International instruments | `instrumentsInternational` | `instruments international` | `instruments_international` | ⬜ |
+| International instruments | `instrumentsInternational` | `instruments international` | `instruments_international` | ✅ |
 | Instrument price history | `instrumentPrices` | `instruments prices` | `instrument_prices` | ✅ |
 | Cartera summary (P&L) | `carteraSummary` | `cartera summary` | `cartera_summary` | ✅ |
 | Cartera movements | `carteraMovements` | `cartera movements` | `cartera_movements` | ✅ |
 
-The endpoint paths for the ⬜ rows are already in `config.ENDPOINTS` (observed
-from the Python `nemo-cli`); each row still needs its wire contract re-observed
-and documented under `docs/vector-contract/` before wiring (CONVENTIONS).
+All surface rows are wired. Every endpoint path lives in `config.ENDPOINTS` and
+each wired surface has its re-observed wire contract documented under
+`docs/vector-contract/` (CONVENTIONS). A new surface re-observes before wiring.
 
 ## Cross-cutting (not a single surface)
 

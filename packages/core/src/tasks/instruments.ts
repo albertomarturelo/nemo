@@ -122,6 +122,120 @@ function asInt(value: unknown): number {
   return typeof value === 'number' ? value : 0;
 }
 
+// ── International instruments ────────────────────────────────────────────────
+// US-listed assets the portal serves under `/frontoffice/shared/Asset`. Mirrors
+// the local listing shape ({ market, page, pageSize, total, items }) but the wire
+// envelope differs: rows live under `items` (not `result`) and the count is
+// `totalCount` (not `total`). Observed at the portal's `/frontoffice/shared/Asset`
+// endpoint on 2026-07-08; full request/response in docs/vector-contract/instruments.md.
+
+/** A curated international (US-listed) instrument row. */
+export interface InternationalInstrument {
+  id: string;
+  symbol: string;
+  name: string;
+  exchange: string;
+  assetClass: string;
+  status: string;
+  tradable: boolean;
+  fractionable: boolean;
+  shortable: boolean;
+  cusip: string | null;
+}
+
+/** The international listing envelope — same shape as the local one, so a
+ *  downstream consumer parses both surfaces the same way (only `market` differs). */
+export interface InternationalInstrumentsPage {
+  market: 'international';
+  page: number;
+  pageSize: number;
+  total: number;
+  items: InternationalInstrument[];
+}
+
+export interface InternationalInstrumentsQuery {
+  /** Free-text filter on symbol / name (portal param `search`). */
+  search?: string;
+  /** Exchange filter, e.g. `NASDAQ` / `NYSE` (portal param `exchangeName`). */
+  exchange?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+/** List international (US-listed) instruments matching the query. Paged; `total`
+ *  is the full count. */
+export async function instrumentsInternational(
+  rt: Runtime,
+  query: InternationalInstrumentsQuery = {},
+): Promise<InternationalInstrumentsPage> {
+  const page = query.page ?? 1;
+  const pageSize = query.pageSize ?? 30;
+
+  return audited(
+    rt,
+    'instruments.international',
+    async () => {
+      const res = await request(rt, {
+        method: 'GET',
+        path: ENDPOINTS.instrumentsInternational,
+        params: {
+          page,
+          pageSize,
+          search: query.search ?? '',
+          exchangeName: query.exchange ?? '',
+        },
+      });
+      if (res.status >= 400) {
+        throw new ApiError(
+          res.status,
+          `Failed to list international instruments (${res.status} ${res.statusText}): ${await res.text()}`,
+        );
+      }
+
+      const payload: unknown = await res.json();
+      if (typeof payload !== 'object' || payload === null) {
+        throw new ContractError('International instruments response was not a JSON object.');
+      }
+      const record = payload as Record<string, unknown>;
+      const rawItems = record.items;
+      const rawTotal = record.totalCount;
+      if (!Array.isArray(rawItems)) {
+        throw new ContractError("International instruments response missing 'items' array.");
+      }
+      if (typeof rawTotal !== 'number') {
+        throw new ContractError("International instruments response missing integer 'totalCount'.");
+      }
+
+      const items = rawItems
+        .filter(
+          (item): item is Record<string, unknown> => typeof item === 'object' && item !== null,
+        )
+        .map(toInternationalInstrument);
+      return { market: 'international' as const, page, pageSize, total: rawTotal, items };
+    },
+    { search: query.search ?? '', exchange: query.exchange ?? '', page, pageSize },
+  );
+}
+
+function toInternationalInstrument(item: Record<string, unknown>): InternationalInstrument {
+  return {
+    id: asStr(item.id),
+    symbol: asStr(item.symbol),
+    name: asStr(item.name),
+    exchange: asStr(item.exchangeName),
+    assetClass: asStr(item.assetClassName),
+    status: asStr(item.status),
+    tradable: asBool(item.tradable),
+    fractionable: asBool(item.fractionable),
+    shortable: asBool(item.shortable),
+    cusip: asOptionalStr(item.cusip),
+  };
+}
+
+function asBool(value: unknown): boolean {
+  return value === true;
+}
+
 // ── Local price history (prices) ────────────────────────────────────────────
 // ~1 year of daily prices for a LOCAL instrument, with pure summary stats and an
 // ASCII sparkline for the CLI human view. Ported from nemo-cli

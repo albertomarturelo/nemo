@@ -81,6 +81,41 @@ describe('nemo CLI', () => {
     expect(text).toContain('min 100   max 110');
   });
 
+  it('instruments international → JSON envelope from the (faked) portal', async () => {
+    const http = new FakeHttpClient((req) => {
+      expect(req.params).toMatchObject({ search: 'aapl', exchangeName: 'NASDAQ', pageSize: 5 });
+      return {
+        json: {
+          items: [
+            {
+              id: 'u1',
+              symbol: 'AAPL',
+              name: 'Apple Inc.',
+              exchangeName: 'NASDAQ',
+              tradable: true,
+            },
+          ],
+          totalCount: 13514,
+        },
+      };
+    });
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+    cap = captureStdout();
+    await run(rt, [
+      'instruments',
+      'international',
+      '--search',
+      'aapl',
+      '--exchange',
+      'NASDAQ',
+      '--limit',
+      '5',
+    ]);
+    const payload = JSON.parse(cap.text());
+    expect(payload).toMatchObject({ market: 'international', total: 13514 });
+    expect(payload.items[0].symbol).toBe('AAPL');
+  });
+
   it('auth login → prompts for the password and caches the token', async () => {
     const http = new FakeHttpClient(() => ({ json: { token: 'minted' } }));
     const tokens = new MemoryTokenStore();

@@ -1,8 +1,9 @@
 # Wire contract — Instruments
 
-Observed from the Python `nemo-cli` (`instruments/*.py`). The **local** surface is
-wired; the international + prices surfaces are documented as planned (re-observe on
-the live portal before wiring — ROADMAP).
+Observed from the live portal (and the Python `nemo-cli`, `instruments/*.py`). The
+**local**, **international**, and **price-history** surfaces are wired; each section
+cites its observation. Re-observe on the live portal before wiring a new one
+(ROADMAP).
 
 ## Local instruments (wired)
 
@@ -44,9 +45,55 @@ the live portal before wiring — ROADMAP).
 - **Errors:** `>= 400` → `ApiError(status, verbatimBody)`; a missing `result`
   array or non-numeric `total` → `ContractError` (re-observe).
 
-## International instruments (planned)
+## International instruments (wired)
 
-- **Method / path:** `GET /frontoffice/shared/Asset` — re-observe params/shape.
+- **Method / path:** `GET /frontoffice/shared/Asset`
+  — observed at `…/api/frontoffice/shared/Asset` on 2026-07-08.
+- **Auth:** `Authorization: Bearer <token>` (via `auth/session.request()`)
+- **Query params:**
+
+| Param | Meaning | Example |
+| --- | --- | --- |
+| `page` | 1-based page number | `1` |
+| `pageSize` | page size | `5` |
+| `search` | free-text filter on symbol / name (empty = all) | `a` |
+| `exchangeName` | exchange filter (empty = all) | `NASDAQ` |
+
+- **Response (200):** `{ items: [...], totalCount: <int> }` — note the envelope
+  differs from the local listing (`result` / `total`). Each row (curated fields the
+  core projects; the row carries more — margin flags, `tradeCount`, `volume`,
+  `idCorrelativo` — alias-tolerant, missing → empty/`null`/`false`):
+
+```jsonc
+{
+  "items": [
+    {
+      "id": "00000000-0000-4000-8000-000000000001", // asset UUID
+      "cusip": null,
+      "assetClassName": "us_equity",
+      "exchangeName": "NASDAQ",
+      "symbol": "AAPL",
+      "name": "Apple Inc. Common Stock",
+      "status": "active",
+      "tradable": true,
+      "shortable": true,
+      "fractionable": true
+    }
+  ],
+  "totalCount": 13514
+}
+```
+
+> Values above are **synthetic** (ADR-012) — the `id` UUID is invented; symbol /
+> exchange are public market reference data; `totalCount` is the public catalog
+> size (not account PII).
+
+- **Curated envelope the task returns:**
+  `{ market: "international", page, pageSize, total, items: InternationalInstrument[] }`
+  where each item is `{ id, symbol, name, exchange, assetClass, status, tradable,
+  fractionable, shortable, cusip }`.
+- **Errors:** `>= 400` → `ApiError(status, verbatimBody)`; a missing `items` array
+  or non-numeric `totalCount` → `ContractError` (re-observe).
 
 ## Local price history (wired)
 

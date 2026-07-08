@@ -2,7 +2,12 @@
 // server.ts (ADR-007); later reads (international, prices) add sibling tools here.
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { instrumentsLocal, instrumentPrices, type Runtime } from '@albertomarturelo/nemo-core';
+import {
+  instrumentsLocal,
+  instrumentPrices,
+  instrumentsInternational,
+  type Runtime,
+} from '@albertomarturelo/nemo-core';
 import { toolJson } from '../tool-helpers.js';
 
 export function registerInstrumentsTools(server: McpServer, runtime: Runtime): void {
@@ -27,6 +32,35 @@ export function registerInstrumentsTools(server: McpServer, runtime: Runtime): v
           ...(search !== undefined ? { search } : {}),
           ...(page !== undefined ? { page } : {}),
           ...(limit !== undefined ? { limit } : {}),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    'instruments_international',
+    {
+      title: 'List international instruments',
+      description:
+        'List international (US-listed) instruments from the Vector portal, paged. Filter by ' +
+        'symbol/name (search) and/or exchange (e.g. NASDAQ, NYSE). Returns the curated JSON ' +
+        'envelope { market, page, pageSize, total, items } — the same shape as instruments_local. ' +
+        'Requires a live session (use the CLI `nemo auth login` first — the MCP server cannot ' +
+        'sign in).',
+      inputSchema: {
+        search: z.string().optional(),
+        exchange: z.string().optional(),
+        page: z.number().int().positive().optional(),
+        pageSize: z.number().int().positive().optional(),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    ({ search, exchange, page, pageSize }) =>
+      toolJson(() =>
+        instrumentsInternational(runtime, {
+          ...(search !== undefined ? { search } : {}),
+          ...(exchange !== undefined ? { exchange } : {}),
+          ...(page !== undefined ? { page } : {}),
+          ...(pageSize !== undefined ? { pageSize } : {}),
         }),
       ),
   );
