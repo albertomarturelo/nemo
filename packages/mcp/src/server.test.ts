@@ -21,8 +21,9 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
     expect(names).toEqual([
       'auth_logout',
       'auth_status',
+      'cartera_movements',
+      'cartera_summary',
       'instruments_local',
-      'portfolio_movements',
     ]);
 
     // ADR-006: no sign-in tool, and no tool INPUT FIELD accepts a password.
@@ -61,7 +62,7 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
     expect(isError(res)).toBe(false);
   });
 
-  it('portfolio_movements returns the classified envelope over a live session', async () => {
+  it('cartera_movements returns the classified envelope over a live session', async () => {
     const http = new testing.FakeHttpClient(() => ({
       json: [
         {
@@ -77,11 +78,38 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
       makeRuntime({ http, tokens: new testing.MemoryTokenStore(FRESH_TOKEN) }),
     );
     const res = await client.callTool({
-      name: 'portfolio_movements',
+      name: 'cartera_movements',
       arguments: { desde: '2026-01-01', hasta: '2026-06-30' },
     });
     const payload = JSON.parse(toolText(res));
     expect(payload.summary.totalCommissions).toBe(500);
+    expect(isError(res)).toBe(false);
+  });
+
+  it('cartera_summary returns the holdings + P&L envelope over a live session', async () => {
+    const http = new testing.FakeHttpClient((req) => {
+      expect(req.params).toMatchObject({ codMonedaSld: 'CLP', conDividendos: 'true' });
+      return {
+        json: [
+          {
+            clasificacion: 'RENTA FIJA',
+            nemotecnico: 'CFISYNTHRF',
+            codMonedaDflt: 'CLP',
+            valorPresenteCompraMonDflt: 1000,
+            valorPresenteMercadoMonDflt: 1200,
+            fechaConsulta: '2026-07-07T00:00:00',
+          },
+        ],
+      };
+    });
+    const client = await connect(
+      makeRuntime({ http, tokens: new testing.MemoryTokenStore(FRESH_TOKEN) }),
+    );
+    const res = await client.callTool({ name: 'cartera_summary', arguments: {} });
+    const payload = JSON.parse(toolText(res));
+    expect(payload.currency).toBe('CLP');
+    expect(payload.holdings[0].pnl).toBe(200);
+    expect(payload.totals).toMatchObject({ costBasis: 1000, marketValue: 1200, pnl: 200 });
     expect(isError(res)).toBe(false);
   });
 

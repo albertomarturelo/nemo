@@ -15,9 +15,9 @@ export const ENDPOINTS = {
   refreshToken: '/publicapi/shared/auth/RefreshToken',
   instrumentsLocal: '/shared/Instrumentos/FiltrarInstrumentos',
   instrumentsInternational: '/frontoffice/shared/Asset',
-  portfolioSummary: '/frontoffice/shared/cartera/CierreCarteraResumidaOnline',
+  carteraSummary: '/frontoffice/shared/cartera/CierreCarteraResumidaOnline',
   instrumentPrices: '/frontoffice/shared/PublicadorPrecio/GetPreciosInstrumento',
-  portfolioMovements: '/frontoffice/shared/MovimientosCajas/Movimientos',
+  carteraMovements: '/frontoffice/shared/MovimientosCajas/Movimientos',
 } as const;
 
 /** Renew a cached token this many seconds before its `exp` (proactive refresh,

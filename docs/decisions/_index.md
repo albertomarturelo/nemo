@@ -22,3 +22,4 @@ the `new-decision` skill and append its row here in the same change.
 | 010 | [JSON is the default output; core is the JSON contract](010-json-default-output.md)        | Accepted | 2026-07-03 |
 | 011 | [zod for MCP tool input validation](011-zod-mcp-input-validation.md)                       | Accepted | 2026-07-03 |
 | 012 | [Public repository — no sensitive data in any git/GitHub artifact](012-public-repo-no-sensitive-data.md) | Accepted | 2026-07-03 |
+| 013 | [Rename `portfolio` → `cartera`; entrenched-Spanish surface naming](013-cartera-spanish-surface-naming.md) | Accepted | 2026-07-07 |

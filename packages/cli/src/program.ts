@@ -8,7 +8,7 @@ import { nodePrompters, type Prompters } from './prompt.js';
 // Surfaces register their subtree from ONE append-only line each (ADR-007).
 import { registerAuth } from './commands/auth.js';
 import { registerInstruments } from './commands/instruments.js';
-import { registerPortfolio } from './commands/portfolio.js';
+import { registerCartera } from './commands/cartera.js';
 
 export function buildProgram(runtime: Runtime, prompters: Prompters = nodePrompters): Command {
   const program = new Command();
@@ -25,7 +25,7 @@ export function buildProgram(runtime: Runtime, prompters: Prompters = nodePrompt
 
   registerAuth(program, runtime, prompters);
   registerInstruments(program, runtime);
-  registerPortfolio(program, runtime);
+  registerCartera(program, runtime);
 
   // Make `--json`/`--human` parse after a subcommand too, by adding them to every
   // leaf command once the register fns have built their subtrees.

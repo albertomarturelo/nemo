@@ -1,4 +1,4 @@
-# Wire contract — Portfolio
+# Wire contract — Cartera
 
 Observed from the Python `nemo-cli` (`portfolio/movements.py`), which derived it
 from the live portal. Re-confirm on the live portal when touching this surface. All
@@ -72,7 +72,61 @@ Each row's `kind` is derived from its description, observed on the live portal:
 | a RUT + `cargo > 0` | `cash_out` | — |
 | anything else | `other` | — (excluded from every total) |
 
-## Summary (planned)
+## Summary (wired)
+
+Current holdings valued in a chosen currency, with a client-computed P&L and
+totals grouped by classification.
 
 - **Method / path:** `GET /frontoffice/shared/cartera/CierreCarteraResumidaOnline`
-  — holdings + P&L + totals by classification. See issue #3.
+- **Auth:** `Authorization: Bearer <token>` (via `auth/session.request()`)
+- **Query params:**
+
+| Param | Meaning | Example |
+| --- | --- | --- |
+| `id` | account id; `0` = all accounts | `0` |
+| `tipo` | fixed selector | `Cuenta` |
+| `codMonedaSld` | valuation currency (drives `codMonedaDflt` + the present-value fields) | `CLP` / `USD` |
+| `conDividendos` | fold accrued dividends into the valuation — string `"true"` / `"false"` | `"true"` |
+
+- **Response (200):** a JSON **array** of holdings. Curated fields (missing →
+  empty/zero/null); all values below are **synthetic** (ADR-012):
+
+```jsonc
+[
+  {
+    "cuenta": "99999999/0",              // account (also in numCuenta)
+    "numCuenta": "99999999/0",
+    "dscCuenta": "SYNTHETIC ACCOUNT",     // accountName
+    "clasificacion": "RENTA FIJA",        // grouping key for the totals
+    "subClasificacion": "Inversiones Alternativas",
+    "idInstrumento": 1000,
+    "nemotecnico": "CFISYNTHRF",
+    "dscInstrumento": "SYNTHETIC FIXED INCOME FUND",
+    "codSubClaseInstrumento": "CFI",      // instrumentSubclass
+    "serie": null,                        // space-padded on the wire → trimmed; null if blank
+    "codMonedaDflt": "CLP",               // reflects codMonedaSld
+    "cantidad": 10.0,                     // quantity
+    "tasaPrecioCompra": 100.0,            // avgBuyPrice
+    "tasaPrecio": 120.0,                  // marketPrice
+    "valorPresenteCompraMonDflt": 1000.0, // costBasis
+    "valorPresenteMercadoMonDflt": 1200.0,// marketValue
+    "fechaConsulta": "2026-07-07T00:00:00"// queryDate (date part only)
+  }
+]
+```
+
+> In a `codMonedaSld=USD` response the two `valorPresente…MonDflt` fields (and
+> `codMonedaDflt`) are the USD valuation; the `valorMercadoMoneda*` fields stay in
+> the account currency and are **not** part of the curated shape.
+
+- **P&L (pure, client-side):** per holding `pnl = marketValue − costBasis`,
+  `pnlPct = pnl / costBasis` (a fraction; `0` when `costBasis <= 0`, so a
+  fully-divested row never divides by zero). Totals group by `clasificacion`
+  (sorted), plus a grand total over all holdings. `queryDate` = the latest
+  `fechaConsulta` across the holdings.
+- **Curated envelope the task returns:**
+  `{ currency, queryDate, holdings: Holding[], totalsByClassification:
+  ClassificationTotal[], totals }` where `totals` = `{ costBasis, marketValue,
+  pnl, pnlPct }`.
+- **Errors:** `>= 400` → `ApiError(status, verbatimBody)`; a non-array body →
+  `ContractError` (re-observe).

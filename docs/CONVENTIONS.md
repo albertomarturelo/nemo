@@ -122,8 +122,13 @@ ADR-016). It starts with the load-bearing rules ported from the proven Python
 - Domain terms stay in Spanish where they are Spanish (`nemotecnico`,
   `cartera`, `movimientos`). Don't anglicize broker terminology.
 - User-facing surfaces (CLI verbs, MCP tool names) are English where no
-  entrenched Spanish term exists (`status`, `login`, `instruments`), Spanish where
-  one does.
+  entrenched Spanish term exists (`status`, `login`, `instruments`, `auth`),
+  Spanish where one does. A **module / command / tool / task name uses the
+  entrenched Spanish broker term when one exists and is the ordinary noun for the
+  concept** — `cartera` (not `portfolio`), `movimientos`, `nemotecnico`. This does
+  not force renaming `instruments` (no more-entrenched Spanish surface noun than
+  the shipped English one; ADR-007 keeps it as the structural template regardless).
+  See ADR-013.
 
 ## Commits & PRs
 

@@ -14,12 +14,12 @@ Base URL and sub-prefixes are the single source of truth in
 
 - `/publicapi` — auth (`SignIn`, `RefreshToken`)
 - `/shared` — local Chilean instruments
-- `/frontoffice` — international assets, portfolio, prices, movements
+- `/frontoffice` — international assets, cartera, prices, movements
 
 | Surface | File | Status |
 | --- | --- | --- |
 | Auth (SignIn / RefreshToken) | [auth.md](auth.md) | Wired |
 | Instruments — local | [instruments.md](instruments.md) | Wired (local) |
 | Instruments — international / prices | [instruments.md](instruments.md) | Planned |
-| Portfolio — movements | [portfolio.md](portfolio.md) | Wired |
-| Portfolio — summary | [portfolio.md](portfolio.md) | Planned |
+| Cartera — movements | [cartera.md](cartera.md) | Wired |
+| Cartera — summary | [cartera.md](cartera.md) | Planned |

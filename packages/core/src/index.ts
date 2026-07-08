@@ -15,7 +15,7 @@ export type {
   LocalInstrumentsPage,
   LocalInstrumentsQuery,
 } from './tasks/instruments.js';
-export { portfolioMovements } from './tasks/portfolio.js';
+export { carteraMovements, carteraSummary } from './tasks/cartera.js';
 export type {
   MovementKind,
   Movement,
@@ -27,7 +27,12 @@ export type {
   CashBucket,
   MovementsResult,
   MovementsQuery,
-} from './tasks/portfolio.js';
+  Holding,
+  ClassificationTotal,
+  SummaryTotals,
+  SummaryResult,
+  SummaryQuery,
+} from './tasks/cartera.js';
 
 // --- seams: the injectable contract a consumer composes a Runtime from ---
 // The Node default adapters + `createNodeRuntime` live in the `./node` subpath
