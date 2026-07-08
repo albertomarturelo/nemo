@@ -188,8 +188,8 @@ export async function instrumentPrices(
         throw new ContractError('Price history response was not a JSON array.');
       }
 
-      // Rows arrive newest-last but are not guaranteed ordered; sort by the ISO
-      // date string (lexicographic == chronological for `YYYY-MM-DD`).
+      // Row order is not guaranteed; sort by the ISO date string
+      // (lexicographic == chronological for `YYYY-MM-DD`).
       const points = payload
         .filter((row): row is Record<string, unknown> => typeof row === 'object' && row !== null)
         .map(toPricePoint)

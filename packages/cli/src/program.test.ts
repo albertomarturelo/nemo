@@ -64,6 +64,23 @@ describe('nemo CLI', () => {
     expect(payload.stats).toMatchObject({ min: 100, max: 110 });
   });
 
+  it('instruments prices --human → renders the stats line + sparkline', async () => {
+    const http = new FakeHttpClient(() => ({
+      json: [
+        { fecha: '2026-01-01T00:00:00', precio: 100 },
+        { fecha: '2026-01-02T00:00:00', precio: 110 },
+      ],
+    }));
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+    cap = captureStdout();
+    await run(rt, ['instruments', 'prices', '--id', '42', '--human']);
+    const text = cap.text();
+    expect(text).toContain('Instrument 42 — 2 daily prices 2026-01-01 → 2026-01-02');
+    expect(text).toContain('▁█'); // sparkline of the two-point ascending series
+    expect(text).toContain('return 10.00%'); // (110 - 100) / 100
+    expect(text).toContain('min 100   max 110');
+  });
+
   it('auth login → prompts for the password and caches the token', async () => {
     const http = new FakeHttpClient(() => ({ json: { token: 'minted' } }));
     const tokens = new MemoryTokenStore();

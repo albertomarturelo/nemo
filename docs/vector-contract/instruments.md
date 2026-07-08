@@ -59,7 +59,7 @@ the live portal before wiring — ROADMAP).
 | `idInstrumento` | the local instrument id (from `instruments local`) | `52185` |
 
 - **Response (200):** a **flat JSON array** (NOT wrapped in `{ result }`) of daily
-  rows, oldest-last but not guaranteed ordered (the task sorts by `fecha`). ~1 year
+  rows whose order is not guaranteed (the task sorts by `fecha`). ~1 year
   of history; weekends/holidays repeat the prior close. Curated fields (the row
   carries more — mostly `null` — and is alias-tolerant, missing → `""`/`0`):
 
