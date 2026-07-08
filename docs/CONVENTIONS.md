@@ -134,7 +134,11 @@ ADR-016). It starts with the load-bearing rules ported from the proven Python
 
 - One topic per commit. Conventional Commits subject (`feat(scope): …`),
   ≤72 chars. English everywhere (commits, branches, PRs).
-- **One feature / work-unit per PR.** Split before opening the PR.
+- **One feature / work-unit per PR.** Split before opening the PR. **When work
+  is stacked on one branch, still open SEPARATE PRs** — the second PR's base is
+  the first branch, so each PR shows only its own diff and closes only its own
+  issue. Never one PR spanning two issues (PR #7 merged the `cartera` rename +
+  the summary feature together — a mixed PR to avoid).
 - **Status docs go in a SEPARATE commit from feature code.**
   `CURRENT_STATUS.md` / `ROADMAP.md` bookkeeping is its own commit; the feature
   commit carries code plus its tightly-coupled docs only (the ADR + any
