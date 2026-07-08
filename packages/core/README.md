@@ -1,7 +1,7 @@
 # @albertomarturelo/nemo-core
 
 The shared domain nucleus for **nemo** — a TypeScript library that models the
-Vector Capital broker portal (auth/session, instruments, portfolio) behind a
+Vector Capital broker portal (auth/session, instruments, cartera) behind a
 small set of injectable seams. Two thin surfaces consume it: the [`nemo`
 CLI](../cli) and the [`nemo-mcp` server](../mcp).
 

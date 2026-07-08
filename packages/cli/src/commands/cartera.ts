@@ -1,21 +1,21 @@
-// `nemo portfolio …` — portfolio reads. First subcommand: movements. Later reads
-// (summary) add a sibling here. Append-only: one `registerPortfolio` call from
+// `nemo cartera …` — cartera (portfolio) reads. First subcommand: movements. Later
+// reads (summary) add a sibling here. Append-only: one `registerCartera` call from
 // program.ts (ADR-007).
 import type { Command } from 'commander';
-import { portfolioMovements, type Runtime } from '@albertomarturelo/nemo-core';
+import { carteraMovements, type Runtime } from '@albertomarturelo/nemo-core';
 import { emit, out } from '../io.js';
 
-export function registerPortfolio(program: Command, runtime: Runtime): void {
-  const portfolio = program.command('portfolio').description('Inspect your portfolio.');
+export function registerCartera(program: Command, runtime: Runtime): void {
+  const cartera = program.command('cartera').description('Inspect your portfolio.');
 
-  portfolio
+  cartera
     .command('movements')
     .description('List cash movements over a date range, classified per kind.')
     .option('--desde <date>', 'Start date YYYY-MM-DD (default: 1 year ago).')
     .option('--hasta <date>', 'End date YYYY-MM-DD (default: today).')
     .option('--account-id <id>', 'Account id to filter on (0 = all accounts).', '0')
     .action(async (opts: { desde?: string; hasta?: string; accountId: string }) => {
-      const result = await portfolioMovements(runtime, {
+      const result = await carteraMovements(runtime, {
         ...(opts.desde !== undefined ? { desde: opts.desde } : {}),
         ...(opts.hasta !== undefined ? { hasta: opts.hasta } : {}),
         accountId: Number(opts.accountId),

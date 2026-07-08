@@ -59,7 +59,7 @@ describe('nemo CLI', () => {
     expect(await tokens.get()).toBe('minted');
   });
 
-  it('portfolio movements → classified JSON envelope from the (faked) portal', async () => {
+  it('cartera movements → classified JSON envelope from the (faked) portal', async () => {
     const http = new FakeHttpClient(() => ({
       json: [
         {
@@ -73,7 +73,7 @@ describe('nemo CLI', () => {
     }));
     const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
     cap = captureStdout();
-    await run(rt, ['portfolio', 'movements', '--desde', '2026-01-01', '--hasta', '2026-06-30']);
+    await run(rt, ['cartera', 'movements', '--desde', '2026-01-01', '--hasta', '2026-06-30']);
     const payload = JSON.parse(cap.text());
     expect(payload).toMatchObject({ from: '2026-01-01', to: '2026-06-30' });
     expect(payload.summary.totalDividends).toBe(3500);

@@ -63,7 +63,7 @@ Salida **JSON por defecto** (pipeable a `jq`); `--human` para lectura.
 | `nemo auth logout` | Borra el token cacheado |
 | `nemo instruments local [--search] [--page] [--limit]` | Lista instrumentos chilenos |
 
-Más superficies (instruments international / prices, portfolio summary / movements)
+Más superficies (instruments international / prices, cartera summary / movements)
 están en el ROADMAP.
 
 ### Vía MCP (Claude Desktop / Claude Code)

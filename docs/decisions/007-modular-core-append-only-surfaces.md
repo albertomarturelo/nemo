@@ -7,7 +7,7 @@ Accepted — 2026-07-03.
 ## Context
 
 The core will grow module by module (instruments local/international/prices,
-portfolio summary/movements). If every new read edited a shared `program.ts` /
+cartera summary/movements). If every new read edited a shared `program.ts` /
 `server.ts` and a barrel, parallel work would collide constantly and the shared
 files would churn.
 

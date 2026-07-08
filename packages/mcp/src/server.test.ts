@@ -18,12 +18,7 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
     const client = await connect(makeRuntime());
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();
-    expect(names).toEqual([
-      'auth_logout',
-      'auth_status',
-      'instruments_local',
-      'portfolio_movements',
-    ]);
+    expect(names).toEqual(['auth_logout', 'auth_status', 'cartera_movements', 'instruments_local']);
 
     // ADR-006: no sign-in tool, and no tool INPUT FIELD accepts a password.
     expect(names).not.toContain('auth_login');
@@ -61,7 +56,7 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
     expect(isError(res)).toBe(false);
   });
 
-  it('portfolio_movements returns the classified envelope over a live session', async () => {
+  it('cartera_movements returns the classified envelope over a live session', async () => {
     const http = new testing.FakeHttpClient(() => ({
       json: [
         {
@@ -77,7 +72,7 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
       makeRuntime({ http, tokens: new testing.MemoryTokenStore(FRESH_TOKEN) }),
     );
     const res = await client.callTool({
-      name: 'portfolio_movements',
+      name: 'cartera_movements',
       arguments: { desde: '2026-01-01', hasta: '2026-06-30' },
     });
     const payload = JSON.parse(toolText(res));

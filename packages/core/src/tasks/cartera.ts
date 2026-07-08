@@ -1,8 +1,8 @@
-// Portfolio read surface. First module: cash movements over a date range, each row
-// classified from its description, plus per-nemotécnico aggregates (the input for
-// dividend-yield analysis). Ported from nemo-cli `portfolio/movements.py`; see
-// docs/vector-contract/portfolio.md for the wire shape and the classification rules.
-// `portfolioSummary` (holdings + P&L) will be appended to this module (see #3).
+// Cartera (portfolio) read surface. First module: cash movements over a date range,
+// each row classified from its description, plus per-nemotécnico aggregates (the input
+// for dividend-yield analysis). Ported from nemo-cli `portfolio/movements.py`; see
+// docs/vector-contract/cartera.md for the wire shape and the classification rules.
+// `carteraSummary` (holdings + P&L) will be appended to this module (see #3).
 import { ENDPOINTS } from '../config/index.js';
 import { ApiError, ContractError } from '../errors/index.js';
 import { request } from '../auth/session.js';
@@ -94,7 +94,7 @@ const DAY_MS = 86_400_000;
 
 /** List cash movements over a date range, classified and aggregated. The default
  *  window is the last 365 days, computed from the Clock seam so it is testable. */
-export async function portfolioMovements(
+export async function carteraMovements(
   rt: Runtime,
   query: MovementsQuery = {},
 ): Promise<MovementsResult> {
@@ -105,13 +105,13 @@ export async function portfolioMovements(
 
   return audited(
     rt,
-    'portfolio.movements',
+    'cartera.movements',
     async () => {
       // The movements endpoint is markedly slower than the rest (it can generate a
       // year of activity in one shot), so it gets a generous timeout (ported).
       const res = await request(rt, {
         method: 'GET',
-        path: ENDPOINTS.portfolioMovements,
+        path: ENDPOINTS.carteraMovements,
         params: { id: accountId, tipo: 'Cuenta', desde, hasta },
         timeoutMs: 180_000,
       });

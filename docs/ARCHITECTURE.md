@@ -22,7 +22,7 @@ Python `nemo-cli`; first-hand-observed, not assumed.)
    never hard-code it elsewhere. No `NEMO_ENV` switch (ADR-004).
 
 4. **Three sub-prefixes.** `/publicapi` (auth), `/shared` (local Chilean
-   instruments), `/frontoffice` (international assets, portfolio, prices,
+   instruments), `/frontoffice` (international assets, cartera, prices,
    movements). Each caller passes the explicit prefix; the paths live in
    `config.ENDPOINTS`.
 
@@ -87,7 +87,7 @@ centralizing the auth-renewal rails — not full hexagonal ceremony (ADR-003).
 | `tasks/auth` | `authStatus`, `logout` (barrel) + `login` (CLI-only subpath, ADR-006) | Done |
 | `tasks/instruments` | `instrumentsLocal` — the first read; the template later reads mirror | Done |
 | `tasks/instruments` (intl, prices) | International assets + local price history | Planned (ROADMAP) |
-| `tasks/portfolio` | Cash movements (classified + aggregated) done; holdings summary (P&L) planned | movements done; summary planned |
+| `tasks/cartera` | Cash movements (classified + aggregated) done; holdings summary (P&L) planned | movements done; summary planned |
 | `adapters/node` | `FetchHttpClient` / `FileTokenStore` / `SystemClock` / `FileAuditSink` | Done |
 | `adapters/fake` | In-memory fakes for the four seams (`testing`) | Done |
 | `audit` | `audited()` wrapper — one receipt per task | Done |

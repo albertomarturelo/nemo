@@ -8,10 +8,10 @@ import {
 import { NotAuthenticatedError } from '../errors/index.js';
 import {
   classifyMovement,
-  portfolioMovements,
+  carteraMovements,
   summarizeMovements,
   type Movement,
-} from './portfolio.js';
+} from './cartera.js';
 
 const FRESH = (() => {
   const b64 = (s: string): string => Buffer.from(s, 'utf8').toString('base64url');
@@ -144,7 +144,7 @@ const ONE_BUCKET = [
   },
 ];
 
-describe('portfolioMovements', () => {
+describe('carteraMovements', () => {
   it('maps buckets + a grand summary and defaults the window from the Clock seam', async () => {
     const clockMs = Date.UTC(2026, 6, 3); // 2026-07-03
     const http = new FakeHttpClient((req) => {
@@ -163,7 +163,7 @@ describe('portfolioMovements', () => {
       clock: new FixedClock(clockMs),
     });
 
-    const result = await portfolioMovements(rt);
+    const result = await carteraMovements(rt);
     expect(result.from).toBe('2025-07-03');
     expect(result.to).toBe('2026-07-03');
     expect(result.buckets).toHaveLength(1);
@@ -177,7 +177,7 @@ describe('portfolioMovements', () => {
 
   it('raises NotAuthenticatedError when no token is cached', async () => {
     const rt = fakeRuntime({ tokens: new MemoryTokenStore(null) });
-    await expect(portfolioMovements(rt)).rejects.toBeInstanceOf(NotAuthenticatedError);
+    await expect(carteraMovements(rt)).rejects.toBeInstanceOf(NotAuthenticatedError);
   });
 
   it('refreshes once on a 401 and retries', async () => {
@@ -191,7 +191,7 @@ describe('portfolioMovements', () => {
     const tokens = new MemoryTokenStore(FRESH);
     const rt = fakeRuntime({ http, tokens, clock: new FixedClock(0) });
 
-    const result = await portfolioMovements(rt, { desde: '2026-01-01', hasta: '2026-06-30' });
+    const result = await carteraMovements(rt, { desde: '2026-01-01', hasta: '2026-06-30' });
     expect(result.buckets).toHaveLength(1);
     expect(await tokens.get()).toBe('renewed');
   });

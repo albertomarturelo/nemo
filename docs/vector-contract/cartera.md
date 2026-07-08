@@ -1,4 +1,4 @@
-# Wire contract — Portfolio
+# Wire contract — Cartera
 
 Observed from the Python `nemo-cli` (`portfolio/movements.py`), which derived it
 from the live portal. Re-confirm on the live portal when touching this surface. All
