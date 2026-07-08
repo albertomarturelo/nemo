@@ -85,7 +85,8 @@ cites its observation. Re-observe on the live portal before wiring a new one
 ```
 
 > Values above are **synthetic** (ADR-012) — the `id` UUID is invented; symbol /
-> exchange are public market reference data.
+> exchange are public market reference data; `totalCount` is the public catalog
+> size (not account PII).
 
 - **Curated envelope the task returns:**
   `{ market: "international", page, pageSize, total, items: InternationalInstrument[] }`

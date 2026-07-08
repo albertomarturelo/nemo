@@ -108,7 +108,7 @@ describe('nemo CLI', () => {
       'aapl',
       '--exchange',
       'NASDAQ',
-      '--page-size',
+      '--limit',
       '5',
     ]);
     const payload = JSON.parse(cap.text());
