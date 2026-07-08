@@ -134,6 +134,26 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
     expect(isError(res)).toBe(false);
   });
 
+  it('instrument_prices rejects a non-integer id at the zod boundary (.int(), not reaching core)', async () => {
+    // The SDK validates the input schema before the handler runs. A real JS float
+    // (3.5) must fail the `.int()` check SPECIFICALLY — the error carries
+    // received:"float" — distinct from a stringified "3.5", which would fail the
+    // number type check (received:"string"). The in-memory transport surfaces the
+    // InvalidParams McpError as an isError result rather than a rejection.
+    let reached = false;
+    const http = new testing.FakeHttpClient(() => {
+      reached = true;
+      return { json: [] };
+    });
+    const client = await connect(
+      makeRuntime({ http, tokens: new testing.MemoryTokenStore(FRESH_TOKEN) }),
+    );
+    const res = await client.callTool({ name: 'instrument_prices', arguments: { id: 3.5 } });
+    expect(isError(res)).toBe(true);
+    expect(toolText(res)).toContain('Expected integer, received float'); // the .int() branch
+    expect(reached).toBe(false); // never reached the core task
+  });
+
   it('instruments_local surfaces the not-authenticated error verbatim (isError)', async () => {
     const client = await connect(makeRuntime());
     const res = await client.callTool({ name: 'instruments_local', arguments: {} });
