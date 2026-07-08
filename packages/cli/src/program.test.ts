@@ -79,4 +79,30 @@ describe('nemo CLI', () => {
     expect(payload.summary.totalDividends).toBe(3500);
     expect(payload.buckets[0].movements[0].kind).toBe('dividend');
   });
+
+  it('cartera summary → holdings + P&L JSON envelope (synthetic, faked portal)', async () => {
+    const http = new FakeHttpClient((req) => {
+      // --no-dividends flips the query flag; --currency threads through.
+      expect(req.params).toMatchObject({ codMonedaSld: 'USD', conDividendos: 'false' });
+      return {
+        json: [
+          {
+            clasificacion: 'RENTA FIJA',
+            nemotecnico: 'CFISYNTHRF',
+            codMonedaDflt: 'USD',
+            valorPresenteCompraMonDflt: 1000,
+            valorPresenteMercadoMonDflt: 1200,
+            fechaConsulta: '2026-07-07T00:00:00',
+          },
+        ],
+      };
+    });
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+    cap = captureStdout();
+    await run(rt, ['cartera', 'summary', '--currency', 'USD', '--no-dividends']);
+    const payload = JSON.parse(cap.text());
+    expect(payload).toMatchObject({ currency: 'USD', queryDate: '2026-07-07' });
+    expect(payload.holdings[0]).toMatchObject({ nemotecnico: 'CFISYNTHRF', pnl: 200 });
+    expect(payload.totals).toMatchObject({ costBasis: 1000, marketValue: 1200, pnl: 200 });
+  });
 });

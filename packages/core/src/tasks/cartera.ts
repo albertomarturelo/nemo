@@ -350,3 +350,204 @@ function asFloat(value: unknown): number {
 function asDate(value: unknown): string {
   return typeof value === 'string' ? value.slice(0, 10) : '';
 }
+
+function asOptionalStr(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function asOptionalDate(value: unknown): string | null {
+  // The portal sends `fechaConsulta` as an ISO timestamp; keep only the date, or
+  // null if the field is missing (a holdings row may predate the field).
+  return typeof value === 'string' && value.length >= 10 ? value.slice(0, 10) : null;
+}
+
+// ── Summary (holdings + P&L) ────────────────────────────────────────────────
+// Current holdings with a computed profit/loss and totals grouped by
+// classification. Ported from nemo-cli `portfolio/summary.py`; wire shape +
+// field mapping in docs/vector-contract/cartera.md. The endpoint returns each
+// holding already valued in the requested currency (`codMonedaSld`); P&L and the
+// totals are pure client-side math over `valorPresenteCompra/MercadoMonDflt`.
+
+/** One holding, valued in the queried currency, with computed P&L. */
+export interface Holding {
+  account: string;
+  accountName: string;
+  classification: string;
+  subClassification: string;
+  instrumentId: number;
+  nemotecnico: string;
+  description: string;
+  instrumentSubclass: string;
+  series: string | null;
+  currency: string;
+  quantity: number;
+  avgBuyPrice: number;
+  marketPrice: number;
+  costBasis: number;
+  marketValue: number;
+  pnl: number;
+  /** Fraction, not percent: 0.1 = +10 %. `0` when `costBasis <= 0`. */
+  pnlPct: number;
+  queryDate: string | null;
+}
+
+export interface ClassificationTotal {
+  classification: string;
+  costBasis: number;
+  marketValue: number;
+  pnl: number;
+  pnlPct: number;
+}
+
+export interface SummaryTotals {
+  costBasis: number;
+  marketValue: number;
+  pnl: number;
+  pnlPct: number;
+}
+
+/** The summary envelope — the integration contract a consumer parses. */
+export interface SummaryResult {
+  currency: string;
+  queryDate: string | null;
+  holdings: Holding[];
+  totalsByClassification: ClassificationTotal[];
+  totals: SummaryTotals;
+}
+
+export interface SummaryQuery {
+  /** Account id to filter on; 0 = all accounts (the default). */
+  accountId?: number;
+  /** Valuation currency for `codMonedaSld` (e.g. `CLP`, `USD`). Default `CLP`. */
+  currency?: string;
+  /** Fold accrued dividends into the valuation (`conDividendos`). Default `true`. */
+  withDividends?: boolean;
+}
+
+/** Fetch current holdings valued in `currency`, each with a computed P&L, plus
+ *  totals grouped by classification and a grand total. */
+export async function carteraSummary(
+  rt: Runtime,
+  query: SummaryQuery = {},
+): Promise<SummaryResult> {
+  const accountId = query.accountId ?? 0;
+  const currency = query.currency ?? 'CLP';
+  const withDividends = query.withDividends ?? true;
+
+  return audited(
+    rt,
+    'cartera.summary',
+    async () => {
+      const res = await request(rt, {
+        method: 'GET',
+        path: ENDPOINTS.carteraSummary,
+        params: {
+          id: accountId,
+          tipo: 'Cuenta',
+          codMonedaSld: currency,
+          conDividendos: withDividends ? 'true' : 'false',
+        },
+      });
+      if (res.status >= 400) {
+        throw new ApiError(
+          res.status,
+          `Failed to load portfolio summary (${res.status} ${res.statusText}): ${await res.text()}`,
+        );
+      }
+
+      const payload: unknown = await res.json();
+      if (!Array.isArray(payload)) {
+        throw new ContractError('Portfolio summary response was not a JSON array.');
+      }
+
+      const holdings = payload
+        .filter((h): h is Record<string, unknown> => typeof h === 'object' && h !== null)
+        .map(toHolding);
+      return {
+        currency,
+        queryDate: latestQueryDate(holdings),
+        holdings,
+        ...summarizeHoldings(holdings),
+      };
+    },
+    { accountId, currency, withDividends },
+  );
+}
+
+function toHolding(raw: Record<string, unknown>): Holding {
+  const costBasis = asFloat(raw.valorPresenteCompraMonDflt);
+  const marketValue = asFloat(raw.valorPresenteMercadoMonDflt);
+  const { pnl, pnlPct } = computePnl(costBasis, marketValue);
+  return {
+    // `cuenta` and `numCuenta` carry the same value; keep the alias-tolerance the
+    // Python port used in case one is ever blank.
+    account: asStr(raw.cuenta) || asStr(raw.numCuenta),
+    accountName: asStr(raw.dscCuenta),
+    classification: asStr(raw.clasificacion),
+    subClassification: asStr(raw.subClasificacion),
+    instrumentId: asInt(raw.idInstrumento),
+    nemotecnico: asStr(raw.nemotecnico),
+    description: asStr(raw.dscInstrumento),
+    instrumentSubclass: asStr(raw.codSubClaseInstrumento),
+    // `serie` arrives space-padded (e.g. "A         "); trim, null when blank.
+    series: asOptionalStr(raw.serie),
+    currency: asStr(raw.codMonedaDflt),
+    quantity: asFloat(raw.cantidad),
+    avgBuyPrice: asFloat(raw.tasaPrecioCompra),
+    marketPrice: asFloat(raw.tasaPrecio),
+    costBasis,
+    marketValue,
+    pnl,
+    pnlPct,
+    queryDate: asOptionalDate(raw.fechaConsulta),
+  };
+}
+
+/** Profit/loss for a cost/market pair. `pnlPct` is a fraction and is `0` when the
+ *  cost basis is non-positive (avoids divide-by-zero on a fully-divested row).
+ *  Exported for unit testing; not part of the public barrel. */
+export function computePnl(
+  costBasis: number,
+  marketValue: number,
+): { pnl: number; pnlPct: number } {
+  const pnl = marketValue - costBasis;
+  const pnlPct = costBasis > 0 ? pnl / costBasis : 0;
+  return { pnl, pnlPct };
+}
+
+/** Aggregate holdings into per-classification totals (sorted by classification)
+ *  and a grand total. Exported for unit testing; not part of the public barrel. */
+export function summarizeHoldings(holdings: readonly Holding[]): {
+  totalsByClassification: ClassificationTotal[];
+  totals: SummaryTotals;
+} {
+  const byClass = new Map<string, { costBasis: number; marketValue: number }>();
+  for (const h of holdings) {
+    const entry = byClass.get(h.classification) ?? { costBasis: 0, marketValue: 0 };
+    entry.costBasis += h.costBasis;
+    entry.marketValue += h.marketValue;
+    byClass.set(h.classification, entry);
+  }
+
+  const totalsByClassification = [...byClass.entries()]
+    .map(([classification, { costBasis, marketValue }]) => ({
+      classification,
+      costBasis,
+      marketValue,
+      ...computePnl(costBasis, marketValue),
+    }))
+    .sort((a, b) => a.classification.localeCompare(b.classification));
+
+  const costBasis = holdings.reduce((acc, h) => acc + h.costBasis, 0);
+  const marketValue = holdings.reduce((acc, h) => acc + h.marketValue, 0);
+  const totals = { costBasis, marketValue, ...computePnl(costBasis, marketValue) };
+
+  return { totalsByClassification, totals };
+}
+
+function latestQueryDate(holdings: readonly Holding[]): string | null {
+  const dates = holdings.map((h) => h.queryDate).filter((d): d is string => d !== null);
+  return dates.length > 0 ? dates.reduce((a, b) => (a > b ? a : b)) : null;
+}

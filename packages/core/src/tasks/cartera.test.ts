@@ -5,11 +5,15 @@ import {
   MemoryTokenStore,
   fakeRuntime,
 } from '../adapters/fake/index.js';
-import { NotAuthenticatedError } from '../errors/index.js';
+import { ContractError, NotAuthenticatedError } from '../errors/index.js';
 import {
   classifyMovement,
   carteraMovements,
+  carteraSummary,
+  computePnl,
+  summarizeHoldings,
   summarizeMovements,
+  type Holding,
   type Movement,
 } from './cartera.js';
 
@@ -193,6 +197,184 @@ describe('carteraMovements', () => {
 
     const result = await carteraMovements(rt, { desde: '2026-01-01', hasta: '2026-06-30' });
     expect(result.buckets).toHaveLength(1);
+    expect(await tokens.get()).toBe('renewed');
+  });
+});
+
+// ── Summary (holdings + P&L) ────────────────────────────────────────────────
+// All fixtures below are SYNTHETIC (ADR-012): invented amounts, account, nemos.
+
+/** Build a Holding with sensible defaults; override what the test cares about. */
+function hd(partial: Partial<Holding>): Holding {
+  return {
+    account: '99999999/0',
+    accountName: 'SYNTHETIC ACCOUNT',
+    classification: 'RENTA FIJA',
+    subClassification: 'Sub',
+    instrumentId: 1,
+    nemotecnico: 'CFISYNTH',
+    description: 'Synthetic fund',
+    instrumentSubclass: 'CFI',
+    series: null,
+    currency: 'CLP',
+    quantity: 1,
+    avgBuyPrice: 0,
+    marketPrice: 0,
+    costBasis: 0,
+    marketValue: 0,
+    pnl: 0,
+    pnlPct: 0,
+    queryDate: null,
+    ...partial,
+  };
+}
+
+/** A synthetic raw holding row in the portal's wire shape (real field names). */
+function rawHolding(over: Record<string, unknown>): Record<string, unknown> {
+  return {
+    numCuenta: '99999999/0',
+    cuenta: '99999999/0',
+    dscCuenta: 'SYNTHETIC ACCOUNT',
+    clasificacion: 'RENTA FIJA',
+    subClasificacion: 'Inversiones Alternativas',
+    idInstrumento: 1000,
+    nemotecnico: 'CFISYNTHRF',
+    dscInstrumento: 'SYNTHETIC FIXED INCOME FUND',
+    codSubClaseInstrumento: 'CFI',
+    serie: null,
+    codMonedaDflt: 'CLP',
+    cantidad: 10,
+    tasaPrecioCompra: 100,
+    tasaPrecio: 120,
+    valorPresenteCompraMonDflt: 1000,
+    valorPresenteMercadoMonDflt: 1200,
+    fechaConsulta: '2026-07-06T00:00:00',
+    ...over,
+  };
+}
+
+const RENTA_FIJA_HOLDING = rawHolding({ fechaConsulta: '2026-07-07T00:00:00' });
+const RENTA_VARIABLE_HOLDING = rawHolding({
+  clasificacion: 'RENTA VARIABLE',
+  subClasificacion: 'Fondos Mutuos RV Nacional',
+  idInstrumento: 2000,
+  nemotecnico: 'CFISYNTHRV',
+  dscInstrumento: 'SYNTHETIC EQUITY FUND, A',
+  serie: 'A         ', // space-padded on the wire → trimmed to 'A'
+  cantidad: 5,
+  tasaPrecioCompra: 100,
+  tasaPrecio: 80,
+  valorPresenteCompraMonDflt: 500,
+  valorPresenteMercadoMonDflt: 400,
+  fechaConsulta: '2026-07-06T00:00:00',
+});
+
+describe('computePnl', () => {
+  it('computes gain / loss and guards a non-positive cost basis', () => {
+    expect(computePnl(1000, 1200)).toEqual({ pnl: 200, pnlPct: 0.2 });
+    expect(computePnl(500, 400)).toEqual({ pnl: -100, pnlPct: -0.2 });
+    expect(computePnl(0, 50)).toEqual({ pnl: 50, pnlPct: 0 }); // divest → no divide-by-zero
+    expect(computePnl(-10, 5)).toEqual({ pnl: 15, pnlPct: 0 });
+  });
+});
+
+describe('summarizeHoldings', () => {
+  it('groups by classification (sorted) and grand-totals, empty-safe on []', () => {
+    const holdings = [
+      hd({ classification: 'RENTA VARIABLE', costBasis: 500, marketValue: 400 }),
+      hd({ classification: 'RENTA FIJA', costBasis: 1000, marketValue: 1200 }),
+      hd({ classification: 'RENTA FIJA', costBasis: 0, marketValue: 50 }),
+    ];
+    const { totalsByClassification, totals } = summarizeHoldings(holdings);
+    expect(totalsByClassification.map((c) => c.classification)).toEqual([
+      'RENTA FIJA',
+      'RENTA VARIABLE',
+    ]);
+    expect(totalsByClassification[0]).toMatchObject({
+      costBasis: 1000,
+      marketValue: 1250,
+      pnl: 250,
+      pnlPct: 0.25,
+    });
+    expect(totals).toMatchObject({ costBasis: 1500, marketValue: 1650, pnl: 150 });
+    expect(totals.pnlPct).toBeCloseTo(0.1);
+
+    expect(summarizeHoldings([])).toEqual({
+      totalsByClassification: [],
+      totals: { costBasis: 0, marketValue: 0, pnl: 0, pnlPct: 0 },
+    });
+  });
+});
+
+describe('carteraSummary', () => {
+  it('maps holdings, computes P&L, trims `serie`, and totals by classification', async () => {
+    const http = new FakeHttpClient((req) => {
+      expect(req.url).toContain('/frontoffice/shared/cartera/CierreCarteraResumidaOnline');
+      expect(req.params).toMatchObject({
+        id: 0,
+        tipo: 'Cuenta',
+        codMonedaSld: 'CLP',
+        conDividendos: 'true',
+      });
+      return { json: [RENTA_FIJA_HOLDING, RENTA_VARIABLE_HOLDING] };
+    });
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+
+    const result = await carteraSummary(rt);
+    expect(result.currency).toBe('CLP');
+    expect(result.queryDate).toBe('2026-07-07'); // latest fechaConsulta across rows
+    expect(result.holdings).toHaveLength(2);
+
+    const rv = result.holdings.find((h) => h.nemotecnico === 'CFISYNTHRV');
+    expect(rv?.series).toBe('A'); // space-padded on the wire, trimmed here
+    expect(rv?.pnl).toBe(-100);
+    expect(rv?.pnlPct).toBe(-0.2);
+
+    expect(result.totalsByClassification.map((c) => c.classification)).toEqual([
+      'RENTA FIJA',
+      'RENTA VARIABLE',
+    ]);
+    expect(result.totals).toMatchObject({ costBasis: 1500, marketValue: 1600, pnl: 100 });
+  });
+
+  it('threads currency + --no-dividends into the query and is empty-safe', async () => {
+    const http = new FakeHttpClient((req) => {
+      expect(req.params).toMatchObject({ codMonedaSld: 'USD', conDividendos: 'false' });
+      return { json: [] };
+    });
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+
+    const result = await carteraSummary(rt, { currency: 'USD', withDividends: false });
+    expect(result.currency).toBe('USD');
+    expect(result.queryDate).toBeNull();
+    expect(result.holdings).toEqual([]);
+    expect(result.totals).toEqual({ costBasis: 0, marketValue: 0, pnl: 0, pnlPct: 0 });
+  });
+
+  it('raises NotAuthenticatedError when no token is cached', async () => {
+    const rt = fakeRuntime({ tokens: new MemoryTokenStore(null) });
+    await expect(carteraSummary(rt)).rejects.toBeInstanceOf(NotAuthenticatedError);
+  });
+
+  it('raises ContractError when the body is not a JSON array', async () => {
+    const http = new FakeHttpClient(() => ({ json: { unexpected: true } }));
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+    await expect(carteraSummary(rt)).rejects.toBeInstanceOf(ContractError);
+  });
+
+  it('refreshes once on a 401 and retries', async () => {
+    let dataCalls = 0;
+    const http = new FakeHttpClient((req) => {
+      if (req.url.includes('/RefreshToken')) return { json: 'renewed' };
+      dataCalls += 1;
+      if (dataCalls === 1) return { status: 401, text: 'unauthorized' };
+      return { json: [RENTA_FIJA_HOLDING] };
+    });
+    const tokens = new MemoryTokenStore(FRESH);
+    const rt = fakeRuntime({ http, tokens, clock: new FixedClock(0) });
+
+    const result = await carteraSummary(rt);
+    expect(result.holdings).toHaveLength(1);
     expect(await tokens.get()).toBe('renewed');
   });
 });

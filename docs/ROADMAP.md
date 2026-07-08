@@ -31,7 +31,7 @@ surfaces → tests → docs).
 | Local instruments | `instrumentsLocal` | `instruments local` | `instruments_local` | ✅ |
 | International instruments | `instrumentsInternational` | `instruments international` | `instruments_international` | ⬜ |
 | Instrument price history | `instrumentPrices` | `instruments prices` | `instrument_prices` | ⬜ |
-| Cartera summary (P&L) | `carteraSummary` | `cartera summary` | `cartera_summary` | ⬜ |
+| Cartera summary (P&L) | `carteraSummary` | `cartera summary` | `cartera_summary` | ✅ |
 | Cartera movements | `carteraMovements` | `cartera movements` | `cartera_movements` | ✅ |
 
 The endpoint paths for the ⬜ rows are already in `config.ENDPOINTS` (observed

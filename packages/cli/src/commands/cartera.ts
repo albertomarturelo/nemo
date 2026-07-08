@@ -2,7 +2,7 @@
 // reads (summary) add a sibling here. Append-only: one `registerCartera` call from
 // program.ts (ADR-007).
 import type { Command } from 'commander';
-import { carteraMovements, type Runtime } from '@albertomarturelo/nemo-core';
+import { carteraMovements, carteraSummary, type Runtime } from '@albertomarturelo/nemo-core';
 import { emit, out } from '../io.js';
 
 export function registerCartera(program: Command, runtime: Runtime): void {
@@ -30,6 +30,35 @@ export function registerCartera(program: Command, runtime: Runtime): void {
           out(`  DIV ${d.nemotecnico}\t${d.occurrences}×\t+${d.totalReceived}`);
         for (const t of s.byTrade)
           out(`  ${t.side.toUpperCase()} ${t.nemotecnico}\t${t.occurrences}×\t${t.totalAmount}`);
+      });
+    });
+
+  cartera
+    .command('summary')
+    .description('List holdings with computed P&L and totals by classification.')
+    .option('--account-id <id>', 'Account id to filter on (0 = all accounts).', '0')
+    .option('--currency <code>', 'Valuation currency, e.g. CLP or USD.', 'CLP')
+    // Included by default; `--no-dividends` sets `dividends` to false (commander).
+    .option('--no-dividends', 'Exclude accrued dividends from the valuation.')
+    .action(async (opts: { accountId: string; currency: string; dividends: boolean }) => {
+      const result = await carteraSummary(runtime, {
+        accountId: Number(opts.accountId),
+        currency: opts.currency,
+        withDividends: opts.dividends,
+      });
+      emit(result, () => {
+        const pct = (f: number): string => `${(f * 100).toFixed(2)}%`;
+        const asOf = result.queryDate ? ` @ ${result.queryDate}` : '';
+        out(`Cartera (${result.currency})${asOf}`);
+        for (const h of result.holdings)
+          out(
+            `  ${h.nemotecnico}\t${h.quantity}\t${h.marketValue}\tP&L ${h.pnl} (${pct(h.pnlPct)})`,
+          );
+        out('  ── by classification ──');
+        for (const c of result.totalsByClassification)
+          out(`  ${c.classification}\t${c.marketValue}\tP&L ${c.pnl} (${pct(c.pnlPct)})`);
+        const t = result.totals;
+        out(`  TOTAL\t${t.marketValue}\tP&L ${t.pnl} (${pct(t.pnlPct)})`);
       });
     });
 }

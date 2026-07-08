@@ -2,7 +2,7 @@
 // server.ts (ADR-007); later reads (summary) add sibling tools here.
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { carteraMovements, type Runtime } from '@albertomarturelo/nemo-core';
+import { carteraMovements, carteraSummary, type Runtime } from '@albertomarturelo/nemo-core';
 import { toolJson } from '../tool-helpers.js';
 
 export function registerCarteraTools(server: McpServer, runtime: Runtime): void {
@@ -28,6 +28,32 @@ export function registerCarteraTools(server: McpServer, runtime: Runtime): void 
           ...(desde !== undefined ? { desde } : {}),
           ...(hasta !== undefined ? { hasta } : {}),
           ...(accountId !== undefined ? { accountId } : {}),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    'cartera_summary',
+    {
+      title: 'Portfolio holdings summary (P&L)',
+      description:
+        'List current holdings, each valued in the requested currency with a computed profit/loss, ' +
+        'plus totals grouped by classification and a grand total. Returns the JSON envelope ' +
+        '{ currency, queryDate, holdings, totalsByClassification, totals }. Requires a live session ' +
+        '(sign in with the CLI `nemo auth login` first — the MCP server cannot sign in).',
+      inputSchema: {
+        accountId: z.number().int().nonnegative().optional(),
+        currency: z.string().optional(),
+        withDividends: z.boolean().optional(),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    ({ accountId, currency, withDividends }) =>
+      toolJson(() =>
+        carteraSummary(runtime, {
+          ...(accountId !== undefined ? { accountId } : {}),
+          ...(currency !== undefined ? { currency } : {}),
+          ...(withDividends !== undefined ? { withDividends } : {}),
         }),
       ),
   );
