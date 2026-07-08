@@ -337,6 +337,13 @@ describe('carteraSummary', () => {
     expect(result.totals).toMatchObject({ costBasis: 1500, marketValue: 1600, pnl: 100 });
   });
 
+  it('trims a blank `serie` (whitespace-only) to null', async () => {
+    const http = new FakeHttpClient(() => ({ json: [rawHolding({ serie: '   ' })] }));
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+    const result = await carteraSummary(rt);
+    expect(result.holdings[0]?.series).toBeNull();
+  });
+
   it('threads currency + --no-dividends into the query and is empty-safe', async () => {
     const http = new FakeHttpClient((req) => {
       expect(req.params).toMatchObject({ codMonedaSld: 'USD', conDividendos: 'false' });

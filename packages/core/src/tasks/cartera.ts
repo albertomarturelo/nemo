@@ -453,13 +453,13 @@ export async function carteraSummary(
       if (res.status >= 400) {
         throw new ApiError(
           res.status,
-          `Failed to load portfolio summary (${res.status} ${res.statusText}): ${await res.text()}`,
+          `Failed to load cartera summary (${res.status} ${res.statusText}): ${await res.text()}`,
         );
       }
 
       const payload: unknown = await res.json();
       if (!Array.isArray(payload)) {
-        throw new ContractError('Portfolio summary response was not a JSON array.');
+        throw new ContractError('Cartera summary response was not a JSON array.');
       }
 
       const holdings = payload

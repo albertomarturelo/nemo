@@ -23,9 +23,9 @@ core are also tracked in [`packages/core/CHANGELOG.md`](packages/core/CHANGELOG.
   per-nemotécnico aggregates; scaffolds the `cartera` module (#4, renamed from
   `portfolio` per ADR-013).
 - Cartera holdings summary (`nemo cartera summary` / `cartera_summary`): current
-  holdings valued in a chosen currency (`--currency`, `--no-dividends`), each with
-  a computed profit/loss, plus totals grouped by classification and a grand
-  total (#3).
+  holdings valued in a chosen currency (`--currency`,
+  `--with-dividends`/`--no-dividends`), each with a computed profit/loss, plus
+  totals grouped by classification and a grand total (#3).
 - CFD context layer: `docs/` (ARCHITECTURE, STACK, CONVENTIONS, ROADMAP,
   vector-contract) + ADRs 001–011, `.claude/skills/`, and CI with context-integrity
   and surface-boundary guards.

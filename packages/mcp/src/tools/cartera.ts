@@ -35,7 +35,7 @@ export function registerCarteraTools(server: McpServer, runtime: Runtime): void 
   server.registerTool(
     'cartera_summary',
     {
-      title: 'Portfolio holdings summary (P&L)',
+      title: 'Cartera holdings summary (P&L)',
       description:
         'List current holdings, each valued in the requested currency with a computed profit/loss, ' +
         'plus totals grouped by classification and a grand total. Returns the JSON envelope ' +
