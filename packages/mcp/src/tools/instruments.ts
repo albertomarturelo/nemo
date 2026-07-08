@@ -2,7 +2,7 @@
 // server.ts (ADR-007); later reads (international, prices) add sibling tools here.
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { instrumentsLocal, type Runtime } from '@albertomarturelo/nemo-core';
+import { instrumentsLocal, instrumentPrices, type Runtime } from '@albertomarturelo/nemo-core';
 import { toolJson } from '../tool-helpers.js';
 
 export function registerInstrumentsTools(server: McpServer, runtime: Runtime): void {
@@ -29,5 +29,23 @@ export function registerInstrumentsTools(server: McpServer, runtime: Runtime): v
           ...(limit !== undefined ? { limit } : {}),
         }),
       ),
+  );
+
+  server.registerTool(
+    'instrument_prices',
+    {
+      title: 'Local instrument price history',
+      description:
+        'Daily price history (~1 year) for a LOCAL (Chilean) instrument by idInstrumento, with ' +
+        'summary stats (total return, σ, min, max). Returns the curated JSON envelope ' +
+        '{ market, idInstrumento, points, stats }. Local instruments only (the endpoint does ' +
+        'not serve international assets). Requires a live session (use the CLI `nemo auth login` ' +
+        'first — the MCP server cannot sign in).',
+      inputSchema: {
+        id: z.number().int().positive(),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    ({ id }) => toolJson(() => instrumentPrices(runtime, { id })),
   );
 }

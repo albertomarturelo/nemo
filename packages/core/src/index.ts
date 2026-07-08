@@ -9,11 +9,15 @@
 // --- tasks: the public operations ---
 export { authStatus, logout } from './tasks/auth.js';
 export type { AuthState, AuthStatusResult, LogoutResult, LoginResult } from './tasks/auth.js';
-export { instrumentsLocal } from './tasks/instruments.js';
+export { instrumentsLocal, instrumentPrices, sparkline } from './tasks/instruments.js';
 export type {
   LocalInstrument,
   LocalInstrumentsPage,
   LocalInstrumentsQuery,
+  PricePoint,
+  PriceStats,
+  PriceHistory,
+  PriceHistoryQuery,
 } from './tasks/instruments.js';
 export { carteraMovements, carteraSummary } from './tasks/cartera.js';
 export type {

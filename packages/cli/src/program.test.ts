@@ -45,6 +45,25 @@ describe('nemo CLI', () => {
     expect(payload.items[0].nemotecnico).toBe('BCI');
   });
 
+  it('instruments prices → JSON envelope with stats over a live session', async () => {
+    const http = new FakeHttpClient((req) => {
+      expect(req.params).toMatchObject({ idInstrumento: 42 });
+      return {
+        json: [
+          { fecha: '2026-01-01T00:00:00', precio: 100 },
+          { fecha: '2026-01-02T00:00:00', precio: 110 },
+        ],
+      };
+    });
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+    cap = captureStdout();
+    await run(rt, ['instruments', 'prices', '--id', '42']);
+    const payload = JSON.parse(cap.text());
+    expect(payload).toMatchObject({ market: 'local', idInstrumento: 42 });
+    expect(payload.points).toHaveLength(2);
+    expect(payload.stats).toMatchObject({ min: 100, max: 110 });
+  });
+
   it('auth login → prompts for the password and caches the token', async () => {
     const http = new FakeHttpClient(() => ({ json: { token: 'minted' } }));
     const tokens = new MemoryTokenStore();
