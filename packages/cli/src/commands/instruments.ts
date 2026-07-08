@@ -5,6 +5,7 @@ import type { Command } from 'commander';
 import {
   instrumentsLocal,
   instrumentPrices,
+  instrumentsInternational,
   sparkline,
   type Runtime,
 } from '@albertomarturelo/nemo-core';
@@ -27,6 +28,28 @@ export function registerInstruments(program: Command, runtime: Runtime): void {
       });
       emit(page, () => {
         for (const item of page.items) out(`${item.nemotecnico}\t${item.descripcion}`);
+        out(`— ${page.items.length} shown of ${page.total} (page ${page.page}).`);
+      });
+    });
+
+  instruments
+    .command('international')
+    .description('List international (US-listed) instruments (paged).')
+    .option('--search <text>', 'Filter by symbol / name.', '')
+    .option('--exchange <name>', 'Filter by exchange (e.g. NASDAQ, NYSE).', '')
+    .option('--page <n>', 'Page number (1-based).', '1')
+    .option('--page-size <n>', 'Page size.', '30')
+    .action(async (opts: { search: string; exchange: string; page: string; pageSize: string }) => {
+      const page = await instrumentsInternational(runtime, {
+        search: opts.search,
+        exchange: opts.exchange,
+        page: Number(opts.page),
+        pageSize: Number(opts.pageSize),
+      });
+      emit(page, () => {
+        for (const item of page.items) {
+          out(`${item.symbol}\t${item.exchange}\t${item.name}`);
+        }
         out(`— ${page.items.length} shown of ${page.total} (page ${page.page}).`);
       });
     });

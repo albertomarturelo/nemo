@@ -24,6 +24,7 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
       'cartera_movements',
       'cartera_summary',
       'instrument_prices',
+      'instruments_international',
       'instruments_local',
     ]);
 
@@ -152,6 +153,37 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
     expect(isError(res)).toBe(true);
     expect(toolText(res)).toContain('Expected integer, received float'); // the .int() branch
     expect(reached).toBe(false); // never reached the core task
+  });
+
+  it('instruments_international returns the curated envelope over a live session', async () => {
+    const http = new testing.FakeHttpClient((req) => {
+      expect(req.params).toMatchObject({ search: 'aapl', exchangeName: 'NASDAQ' });
+      return {
+        json: {
+          items: [
+            {
+              id: 'u1',
+              symbol: 'AAPL',
+              name: 'Apple Inc.',
+              exchangeName: 'NASDAQ',
+              tradable: true,
+            },
+          ],
+          totalCount: 13514,
+        },
+      };
+    });
+    const client = await connect(
+      makeRuntime({ http, tokens: new testing.MemoryTokenStore(FRESH_TOKEN) }),
+    );
+    const res = await client.callTool({
+      name: 'instruments_international',
+      arguments: { search: 'aapl', exchange: 'NASDAQ' },
+    });
+    const payload = JSON.parse(toolText(res));
+    expect(payload).toMatchObject({ market: 'international', total: 13514 });
+    expect(payload.items[0].symbol).toBe('AAPL');
+    expect(isError(res)).toBe(false);
   });
 
   it('instruments_local surfaces the not-authenticated error verbatim (isError)', async () => {

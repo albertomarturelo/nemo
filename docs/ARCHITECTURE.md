@@ -87,7 +87,7 @@ centralizing the auth-renewal rails — not full hexagonal ceremony (ADR-003).
 | `tasks/auth` | `authStatus`, `logout` (barrel) + `login` (CLI-only subpath, ADR-006) | Done |
 | `tasks/instruments` | `instrumentsLocal` — the first read; the template later reads mirror | Done |
 | `tasks/instruments` (prices) | `instrumentPrices` — local daily price history + pure stats/sparkline | Done |
-| `tasks/instruments` (intl) | International assets | Planned (ROADMAP) |
+| `tasks/instruments` (intl) | `instrumentsInternational` — US-listed assets; same `{ market, page, pageSize, total, items }` shape, wire envelope is `{ items, totalCount }` | Done |
 | `tasks/cartera` | Cash movements (classified + aggregated) + holdings summary (P&L, totals by classification) | Done |
 | `adapters/node` | `FetchHttpClient` / `FileTokenStore` / `SystemClock` / `FileAuditSink` | Done |
 | `adapters/fake` | In-memory fakes for the four seams (`testing`) | Done |

@@ -6,7 +6,13 @@ import {
   fakeRuntime,
 } from '../adapters/fake/index.js';
 import { ApiError, ContractError, NotAuthenticatedError } from '../errors/index.js';
-import { computeStats, instrumentPrices, instrumentsLocal, sparkline } from './instruments.js';
+import {
+  computeStats,
+  instrumentPrices,
+  instrumentsInternational,
+  instrumentsLocal,
+  sparkline,
+} from './instruments.js';
 
 const FRESH = (() => {
   const b64 = (s: string): string => Buffer.from(s, 'utf8').toString('base64url');
@@ -83,6 +89,98 @@ describe('instrumentsLocal', () => {
 
     const page = await instrumentsLocal(rt);
     expect(page.total).toBe(1);
+    expect(await tokens.get()).toBe('renewed-token');
+  });
+});
+
+// Synthetic international listing — the wire envelope is `{ items, totalCount }`
+// (NOT `{ result, total }` like local). `id` is a made-up UUID (ADR-012).
+const INTL_PAGE = {
+  items: [
+    {
+      id: '00000000-0000-4000-8000-000000000001',
+      cusip: null,
+      assetClassName: 'us_equity',
+      exchangeName: 'NASDAQ',
+      symbol: 'AAPL',
+      name: 'Apple Inc. Common Stock',
+      status: 'active',
+      tradable: true,
+      shortable: true,
+      fractionable: true,
+    },
+  ],
+  totalCount: 13514,
+};
+
+describe('instrumentsInternational', () => {
+  it('projects the curated envelope and sends the observed params', async () => {
+    const http = new FakeHttpClient((req) => {
+      expect(req.url).toContain('/frontoffice/shared/Asset');
+      expect(req.params).toMatchObject({
+        page: 2,
+        pageSize: 5,
+        search: 'aapl',
+        exchangeName: 'NASDAQ',
+      });
+      expect(req.headers?.Authorization).toBe('Bearer ' + FRESH);
+      return { json: INTL_PAGE };
+    });
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+
+    const page = await instrumentsInternational(rt, {
+      search: 'aapl',
+      exchange: 'NASDAQ',
+      page: 2,
+      pageSize: 5,
+    });
+    expect(page).toEqual({
+      market: 'international',
+      page: 2,
+      pageSize: 5,
+      total: 13514,
+      items: [
+        {
+          id: '00000000-0000-4000-8000-000000000001',
+          symbol: 'AAPL',
+          name: 'Apple Inc. Common Stock',
+          exchange: 'NASDAQ',
+          assetClass: 'us_equity',
+          status: 'active',
+          tradable: true,
+          fractionable: true,
+          shortable: true,
+          cusip: null,
+        },
+      ],
+    });
+  });
+
+  it('raises ContractError when the envelope lacks items / totalCount', async () => {
+    const http = new FakeHttpClient(() => ({ json: { result: [], total: 0 } }));
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+    await expect(instrumentsInternational(rt)).rejects.toBeInstanceOf(ContractError);
+  });
+
+  it('raises NotAuthenticatedError when no token is cached', async () => {
+    const rt = fakeRuntime({ tokens: new MemoryTokenStore(null) });
+    await expect(instrumentsInternational(rt)).rejects.toBeInstanceOf(NotAuthenticatedError);
+  });
+
+  it('refreshes once on a 401 and retries the request', async () => {
+    let calls = 0;
+    const http = new FakeHttpClient((req) => {
+      if (req.url.includes('/RefreshToken')) return { json: 'renewed-token' };
+      calls += 1;
+      if (calls === 1) return { status: 401, text: 'unauthorized' };
+      expect(req.headers?.Authorization).toBe('Bearer renewed-token');
+      return { json: INTL_PAGE };
+    });
+    const tokens = new MemoryTokenStore(FRESH);
+    const rt = fakeRuntime({ http, tokens, clock: new FixedClock(0) });
+
+    const page = await instrumentsInternational(rt);
+    expect(page.total).toBe(13514);
     expect(await tokens.get()).toBe('renewed-token');
   });
 });
