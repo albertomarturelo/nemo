@@ -30,7 +30,7 @@ surfaces → tests → docs).
 | Log out | `logout` | `auth logout` | `auth_logout` | ✅ |
 | Local instruments | `instrumentsLocal` | `instruments local` | `instruments_local` | ✅ |
 | International instruments | `instrumentsInternational` | `instruments international` | `instruments_international` | ⬜ |
-| Instrument price history | `instrumentPrices` | `instruments prices` | `instrument_prices` | ⬜ |
+| Instrument price history | `instrumentPrices` | `instruments prices` | `instrument_prices` | ✅ |
 | Cartera summary (P&L) | `carteraSummary` | `cartera summary` | `cartera_summary` | ✅ |
 | Cartera movements | `carteraMovements` | `cartera movements` | `cartera_movements` | ✅ |
 
