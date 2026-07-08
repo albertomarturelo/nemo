@@ -23,6 +23,7 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
       'auth_status',
       'cartera_movements',
       'cartera_summary',
+      'instrument_prices',
       'instruments_local',
     ]);
 
@@ -111,6 +112,46 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
     expect(payload.holdings[0].pnl).toBe(200);
     expect(payload.totals).toMatchObject({ costBasis: 1000, marketValue: 1200, pnl: 200 });
     expect(isError(res)).toBe(false);
+  });
+
+  it('instrument_prices returns the price-history envelope over a live session', async () => {
+    const http = new testing.FakeHttpClient((req) => {
+      expect(req.params).toMatchObject({ idInstrumento: 42 });
+      return {
+        json: [
+          { fecha: '2026-01-01T00:00:00', precio: 100 },
+          { fecha: '2026-01-02T00:00:00', precio: 110 },
+        ],
+      };
+    });
+    const client = await connect(
+      makeRuntime({ http, tokens: new testing.MemoryTokenStore(FRESH_TOKEN) }),
+    );
+    const res = await client.callTool({ name: 'instrument_prices', arguments: { id: 42 } });
+    const payload = JSON.parse(toolText(res));
+    expect(payload).toMatchObject({ market: 'local', idInstrumento: 42 });
+    expect(payload.stats).toMatchObject({ min: 100, max: 110 });
+    expect(isError(res)).toBe(false);
+  });
+
+  it('instrument_prices rejects a non-integer id at the zod boundary (.int(), not reaching core)', async () => {
+    // The SDK validates the input schema before the handler runs. A real JS float
+    // (3.5) must fail the `.int()` check SPECIFICALLY — the error carries
+    // received:"float" — distinct from a stringified "3.5", which would fail the
+    // number type check (received:"string"). The in-memory transport surfaces the
+    // InvalidParams McpError as an isError result rather than a rejection.
+    let reached = false;
+    const http = new testing.FakeHttpClient(() => {
+      reached = true;
+      return { json: [] };
+    });
+    const client = await connect(
+      makeRuntime({ http, tokens: new testing.MemoryTokenStore(FRESH_TOKEN) }),
+    );
+    const res = await client.callTool({ name: 'instrument_prices', arguments: { id: 3.5 } });
+    expect(isError(res)).toBe(true);
+    expect(toolText(res)).toContain('Expected integer, received float'); // the .int() branch
+    expect(reached).toBe(false); // never reached the core task
   });
 
   it('instruments_local surfaces the not-authenticated error verbatim (isError)', async () => {

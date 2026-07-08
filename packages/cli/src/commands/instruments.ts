@@ -2,7 +2,12 @@
 // ones (international, prices) add a sibling subcommand here. Append-only: one
 // `registerInstruments` call from program.ts (ADR-007).
 import type { Command } from 'commander';
-import { instrumentsLocal, type Runtime } from '@albertomarturelo/nemo-core';
+import {
+  instrumentsLocal,
+  instrumentPrices,
+  sparkline,
+  type Runtime,
+} from '@albertomarturelo/nemo-core';
 import { emit, out } from '../io.js';
 
 export function registerInstruments(program: Command, runtime: Runtime): void {
@@ -23,6 +28,27 @@ export function registerInstruments(program: Command, runtime: Runtime): void {
       emit(page, () => {
         for (const item of page.items) out(`${item.nemotecnico}\t${item.descripcion}`);
         out(`— ${page.items.length} shown of ${page.total} (page ${page.page}).`);
+      });
+    });
+
+  instruments
+    .command('prices')
+    .description('Local instrument daily price history (~1y) with stats + sparkline.')
+    .requiredOption('--id <idInstrumento>', 'Local instrument id (idInstrumento).')
+    .action(async (opts: { id: string }) => {
+      const result = await instrumentPrices(runtime, { id: Number(opts.id) });
+      emit(result, () => {
+        const { points, stats } = result;
+        const first = points.at(0);
+        const last = points.at(-1);
+        const span = first && last ? ` ${first.date} → ${last.date}` : '';
+        const pct = (f: number): string => `${(f * 100).toFixed(2)}%`;
+        out(`Instrument ${result.idInstrumento} — ${points.length} daily prices${span}`);
+        out(`  ${sparkline(points.map((p) => p.close))}`);
+        out(
+          `  return ${pct(stats.totalReturn)}   σ(daily) ${pct(stats.sigma)}` +
+            `   min ${stats.min}   max ${stats.max}`,
+        );
       });
     });
 }
