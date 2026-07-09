@@ -40,6 +40,6 @@ each wired surface has its re-observed wire contract documented under
 
 ## Cross-cutting (not a single surface)
 
-- ⬜ Publish `@albertomarturelo/nemo-core` (npm, personal scope) once the read surfaces land.
+- ✅ Publish `@albertomarturelo/nemo-core` (npm, personal scope) — tag-triggered CD (ADR-014).
 - ⬜ Coverage gate in CI (mirror nemo-cli's ≥95%).
 - ⬜ `--account-id` / multi-account selection once the portfolio reads exist.
