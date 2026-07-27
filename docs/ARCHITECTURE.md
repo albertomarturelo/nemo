@@ -32,13 +32,13 @@ Python `nemo-cli`; first-hand-observed, not assumed.)
 nemo/                         # pnpm workspaces, TypeScript project references
 ├── packages/
 │   ├── core/  (@albertomarturelo/nemo-core)   # All domain logic. A Node library. Thin surfaces call its tasks.
-│   ├── cli/   (@nemo/cli)     # Human CLI (terminal). Also what Claude Code drives via Bash.
+│   ├── cli/   (@albertomarturelo/nemo-cli)     # Human CLI (terminal). Also what Claude Code drives via Bash.
 │   └── mcp/   (@nemo/mcp)     # MCP stdio server. The integration point for Claude Code AND Claude Desktop.
 ├── docs/                     # CFD context layer (this file lives here)
 └── .claude/skills/           # CFD skills
 ```
 
-- **`@nemo/cli`** — the human terminal surface (`nemo …`). Claude Code can also
+- **`@albertomarturelo/nemo-cli`** — the human terminal surface (`nemo …`). Claude Code can also
   invoke it directly through its Bash tool, so the CLI doubles as an AI-usable
   surface inside Claude Code. It is the ONLY surface that can sign in, because
   signing in takes a password (ADR-006).

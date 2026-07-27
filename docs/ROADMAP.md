@@ -9,7 +9,7 @@ portal wire knowledge and guardrails are **ported**, the code is written fresh.
 
 One `@albertomarturelo/nemo-core` engine, two surfaces:
 
-- **`@nemo/cli`** — the terminal surface (and what Claude Code drives via Bash).
+- **`@albertomarturelo/nemo-cli`** — the terminal surface (and what Claude Code drives via Bash).
   The only surface that can sign in (the password is CLI-only, ADR-006).
 - **`@nemo/mcp`** — a stdio MCP server, the integration point for **Claude Code**
   AND **Claude Desktop** — read tools over an already-established session.
@@ -41,5 +41,10 @@ each wired surface has its re-observed wire contract documented under
 ## Cross-cutting (not a single surface)
 
 - ✅ Publish `@albertomarturelo/nemo-core` (npm, personal scope) — tag-triggered CD (ADR-014).
+- ✅ Publish `@albertomarturelo/nemo-cli` (npm) — `cli-v*` tag-triggered CD; release
+  tags are package-prefixed (`core-v*` / `cli-v*`) so the two version
+  independently (ADR-015).
+- ⬜ Publish `@nemo/mcp` as `@albertomarturelo/nemo-mcp` (`mcp-v*`) — same shape as
+  the CLI; needs no new decision (ADR-015).
 - ⬜ Coverage gate in CI (mirror nemo-cli's ≥95%).
 - ⬜ `--account-id` / multi-account selection once the portfolio reads exist.

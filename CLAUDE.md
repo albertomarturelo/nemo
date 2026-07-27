@@ -62,7 +62,7 @@ skills read it from disk, and `close-session` updates it before the end.
 - Test: `pnpm test` (vitest) — one file: `pnpm test <path>`; one name: `pnpm test -t "<pattern>"`
 - Lint / format: `pnpm lint` / `pnpm format` (check: `pnpm format:check`)
 - One package: `pnpm --filter @albertomarturelo/nemo-core <script>`
-- Run the CLI from source: `pnpm --filter @nemo/cli build && node packages/cli/dist/main.js <cmd>`
+- Run the CLI from source: `pnpm --filter @albertomarturelo/nemo-cli build && node packages/cli/dist/main.js <cmd>`
 - Run the MCP server: `node packages/mcp/dist/main.js` (stdio)
 
 ## Critical Rules

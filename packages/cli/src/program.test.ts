@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { testing } from '@albertomarturelo/nemo-core';
 import { buildProgram } from './program.js';
@@ -175,5 +176,16 @@ describe('nemo CLI', () => {
     expect(payload).toMatchObject({ currency: 'USD', queryDate: '2026-07-07' });
     expect(payload.holdings[0]).toMatchObject({ nemotecnico: 'CFISYNTHRF', pnl: 200 });
     expect(payload.totals).toMatchObject({ costBasis: 1000, marketValue: 1200, pnl: 200 });
+  });
+
+  it('reports the published package version', () => {
+    // `--version` is a literal in program.ts while a release bumps package.json
+    // (the tag/version gate reads package.json, ADR-015). Once the CLI is
+    // installable from npm that literal is the ONLY way a user can tell what
+    // they have, so drift between the two must fail here, not in the field.
+    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+      version: string;
+    };
+    expect(buildProgram(fakeRuntime()).version()).toBe(pkg.version);
   });
 });

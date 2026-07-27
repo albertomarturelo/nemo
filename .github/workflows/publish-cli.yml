@@ -1,0 +1,61 @@
+name: Publish CLI
+
+# CD for the public npm package @albertomarturelo/nemo-cli, triggered by a
+# `cli-v*` git tag (ADR-015). Release tags are package-prefixed — `core-v*`
+# publishes the library, `cli-v*` publishes this CLI — because the two packages
+# version independently (no lockstep, ADR-014). `NPM_TOKEN` lives in the
+# `npm-publish` GitHub Environment whose deployment tag policy must list BOTH
+# prefixes; a run triggered from any other ref cannot read it. `pnpm publish` is
+# idempotent — an already-published version is skipped, not an error.
+
+on:
+  push:
+    tags:
+      - 'cli-v*'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Build + publish (cli)
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    steps:
+      - uses: actions/checkout@v4
+
+      # No `version:` here — action-setup reads pnpm from package.json
+      # `packageManager` (the single source of truth), matching ci.yml.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+          scope: '@albertomarturelo'
+
+      - name: Install (frozen)
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck + build (tsc -b)
+        run: pnpm build
+
+      - name: Verify tag matches packages/cli version (ADR-015)
+        # Guard against a mismatched tag publishing a stale version.
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#cli-v}"
+          version=$(node -p "require('./packages/cli/package.json').version")
+          if [ "$version" != "$tag" ]; then
+            echo "::error::Tag '${GITHUB_REF_NAME}' does not match packages/cli version '${version}'. Bump packages/cli/package.json or retag."
+            exit 1
+          fi
+          echo "Tag ${GITHUB_REF_NAME} matches packages/cli."
+
+      - name: Publish @albertomarturelo/nemo-cli (idempotent — skips an already-published version)
+        # `workspace:^` on the core dependency is rewritten to a real semver
+        # range by pnpm at pack time, so the tarball is installable off-workspace.
+        run: pnpm --filter @albertomarturelo/nemo-cli publish --no-git-checks --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

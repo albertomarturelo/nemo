@@ -24,3 +24,4 @@ the `new-decision` skill and append its row here in the same change.
 | 012 | [Public repository — no sensitive data in any git/GitHub artifact](012-public-repo-no-sensitive-data.md) | Accepted | 2026-07-03 |
 | 013 | [Rename `portfolio` → `cartera`; entrenched-Spanish surface naming](013-cartera-spanish-surface-naming.md) | Accepted | 2026-07-07 |
 | 014 | [Publish `@albertomarturelo/nemo-core` to npm via tag-triggered CD](014-npm-publish-core-cd.md)          | Accepted | 2026-07-09 |
+| 015 | [Publish `@albertomarturelo/nemo-cli` to npm; per-package release tags](015-publish-cli-npm-per-package-tags.md) | Accepted | 2026-07-26 |
