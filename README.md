@@ -24,7 +24,7 @@ importar cuál esté al frente.
 ```text
 packages/
   core/   @albertomarturelo/nemo-core   Núcleo de dominio (librería Node). Las superficies llaman solo a sus tasks.
-  cli/    @nemo/cli     CLI humana (`nemo`). También lo que Claude Code corre vía Bash. La ÚNICA que inicia sesión.
+  cli/    @albertomarturelo/nemo-cli     CLI humana (`nemo`). También lo que Claude Code corre vía Bash. La ÚNICA que inicia sesión.
   mcp/    @nemo/mcp     Servidor MCP (`nemo-mcp`, stdio). Punto de integración para Claude Code y Claude Desktop.
 docs/                   Capa de contexto CFD (ARCHITECTURE, CONVENTIONS, ADRs, vector-contract…).
 ```
@@ -34,6 +34,19 @@ rails (renovación de token, auditoría, manejo de credenciales) aplican sin imp
 la superficie. Las dependencias externas (HTTP, token store, reloj, auditoría) viven
 detrás de *seams* inyectables para que los tests no toquen el portal real. Ver
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+## Instalación
+
+```bash
+npm i -g @albertomarturelo/nemo-cli   # instala el binario `nemo`
+nemo auth login
+```
+
+Requiere Node `>=20`. El núcleo se publica aparte como
+[`@albertomarturelo/nemo-core`](https://www.npmjs.com/package/@albertomarturelo/nemo-core)
+si quieres consumirlo como librería. Cada paquete versiona por separado y se
+publica con su propio tag (`core-v*` / `cli-v*`,
+[ADR-015](docs/decisions/015-publish-cli-npm-per-package-tags.md)).
 
 ## Cómo se usa con Claude
 
@@ -62,14 +75,20 @@ Salida **JSON por defecto** (pipeable a `jq`); `--human` para lectura.
 | `nemo auth status` | Estado de la sesión local (`active` / `expiring` / `expired` / `logged_out`) |
 | `nemo auth logout` | Borra el token cacheado |
 | `nemo instruments local [--search] [--page] [--limit]` | Lista instrumentos chilenos |
+| `nemo instruments international [--search] [--exchange] [--page] [--limit]` | Lista instrumentos internacionales (US-listed) |
+| `nemo instruments prices --id <idInstrumento>` | Historial diario de precios (~1 año) con stats y sparkline |
+| `nemo cartera summary [--account-id] [--currency] [--no-dividends]` | Posiciones con P&L calculada y totales por clasificación |
+| `nemo cartera movements [--desde] [--hasta] [--account-id]` | Movimientos de efectivo clasificados por tipo |
 
-Más superficies (instruments international / prices, cartera summary / movements)
-están en el ROADMAP.
+Códigos de salida: `0` éxito, `2` sin sesión (o sesión expirada), `3` login
+fallido, `1` cualquier otro error.
 
 ### Vía MCP (Claude Desktop / Claude Code)
 
 Recursos de orientación (`nemo://session`, `nemo://config`) y tools de lectura
-(`auth_status`, `auth_logout`, `instruments_local`). **No hay tool de login** — la
+(`auth_status`, `auth_logout`, `instruments_local`, `instruments_international`,
+`instrument_prices`, `cartera_summary`, `cartera_movements`). **No hay tool de
+login** — la
 contraseña es exclusiva de la CLI (ADR-006). Las lecturas requieren una sesión ya
 iniciada (`nemo auth login` en la terminal).
 

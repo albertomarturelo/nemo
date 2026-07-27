@@ -1,17 +1,43 @@
 {
-  "name": "@nemo/cli",
-  "version": "0.0.0",
-  "private": true,
+  "name": "@albertomarturelo/nemo-cli",
+  "version": "0.1.0",
   "type": "module",
-  "description": "Human-facing CLI for the Vector Capital portal. Each command is a thin call into @albertomarturelo/nemo-core tasks (ADR-003).",
+  "description": "Human-facing CLI (`nemo`) for the Vector Capital portal. Each command is a thin call into @albertomarturelo/nemo-core tasks (ADR-003).",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/albertomarturelo/nemo.git",
+    "directory": "packages/cli"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
   "bin": {
     "nemo": "./dist/main.js"
   },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "cli",
+    "vector-capital",
+    "corredora",
+    "bolsa",
+    "chile",
+    "nemo"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "dependencies": {
-    "@albertomarturelo/nemo-core": "workspace:*",
+    "@albertomarturelo/nemo-core": "workspace:^",
     "commander": "^12.1.0"
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "prepack": "rm -rf dist tsconfig.tsbuildinfo && tsc -b"
   }
 }

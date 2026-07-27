@@ -26,8 +26,8 @@
   takes a zod shape and emits the protocol JSON Schema. Pinned to satisfy the
   SDK's peer (`^3.25 || ^4.0`). Direct dependency of `@nemo/mcp` only; boundary
   validation lives at the MCP edge, not in the core (ADR-011).
-- **`commander`** `^12.1.0` — the CLI framework for `@nemo/cli` (ADR-008). Nested
-  subcommands (`nemo auth login`, `nemo instruments local`). Lives in `@nemo/cli`
+- **`commander`** `^12.1.0` — the CLI framework for `@albertomarturelo/nemo-cli` (ADR-008). Nested
+  subcommands (`nemo auth login`, `nemo instruments local`). Lives in `@albertomarturelo/nemo-cli`
   only; `@albertomarturelo/nemo-core` never imports it. The hidden password prompt uses
   Node's built-in `readline` — no dependency.
 

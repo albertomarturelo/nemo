@@ -1,4 +1,4 @@
-// Domain error taxonomy. The CLI maps these to exit codes (see @nemo/cli io.ts);
+// Domain error taxonomy. The CLI maps these to exit codes (see @albertomarturelo/nemo-cli io.ts);
 // the MCP surface passes their message through verbatim. Keep the hierarchy flat
 // and the messages actionable — the user knows the broker domain (CONVENTIONS).
 
