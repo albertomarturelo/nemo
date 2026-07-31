@@ -17,3 +17,6 @@ All notable changes to the core package are documented here. The format follows
   (ADR-005); the password-taking `login` task is exported only from the CLI-only
   `@albertomarturelo/nemo-core/cli` subpath (ADR-006).
 - First read task: `instrumentsLocal` (the template later reads mirror).
+- `carteraSaldo` — the standing cash balance of every caja as of a date, valued
+  in a chosen currency, plus a grand total. Only `montoConvertido` shares a
+  currency across cajas, so only it is summed.

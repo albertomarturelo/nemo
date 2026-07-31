@@ -2,7 +2,12 @@
 // server.ts (ADR-007); later reads (summary) add sibling tools here.
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { carteraMovements, carteraSummary, type Runtime } from '@albertomarturelo/nemo-core';
+import {
+  carteraMovements,
+  carteraSaldo,
+  carteraSummary,
+  type Runtime,
+} from '@albertomarturelo/nemo-core';
 import { toolJson } from '../tool-helpers.js';
 
 export function registerCarteraTools(server: McpServer, runtime: Runtime): void {
@@ -54,6 +59,33 @@ export function registerCarteraTools(server: McpServer, runtime: Runtime): void 
           ...(accountId !== undefined ? { accountId } : {}),
           ...(currency !== undefined ? { currency } : {}),
           ...(withDividends !== undefined ? { withDividends } : {}),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    'cartera_saldo',
+    {
+      title: 'Cartera cash balance (saldo caja)',
+      description:
+        'Show the cash balance of every caja as of a date (default: today), each valued in the ' +
+        'requested currency, plus a grand total. This is the standing cash balance, not the ' +
+        'flows `cartera_movements` reports. Returns the JSON envelope ' +
+        '{ currency, fecha, balances, total }. Requires a live session (sign in with the CLI ' +
+        '`nemo auth login` first — the MCP server cannot sign in).',
+      inputSchema: {
+        accountId: z.number().int().nonnegative().optional(),
+        currency: z.string().optional(),
+        fecha: z.string().optional(),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    ({ accountId, currency, fecha }) =>
+      toolJson(() =>
+        carteraSaldo(runtime, {
+          ...(accountId !== undefined ? { accountId } : {}),
+          ...(currency !== undefined ? { currency } : {}),
+          ...(fecha !== undefined ? { fecha } : {}),
         }),
       ),
   );

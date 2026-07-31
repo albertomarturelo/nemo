@@ -2,7 +2,8 @@
 // each row classified from its description, plus per-nemotécnico aggregates (the input
 // for dividend-yield analysis). Ported from nemo-cli `portfolio/movements.py`; see
 // docs/vector-contract/cartera.md for the wire shape and the classification rules.
-// `carteraSummary` (holdings + P&L) will be appended to this module (see #3).
+// Later reads are appended to this module, each in its own section below:
+// `carteraSummary` (holdings + P&L) and `carteraSaldo` (cash balance per caja).
 import { ENDPOINTS } from '../config/index.js';
 import { ApiError, ContractError } from '../errors/index.js';
 import { request } from '../auth/session.js';
@@ -550,4 +551,95 @@ export function summarizeHoldings(holdings: readonly Holding[]): {
 function latestQueryDate(holdings: readonly Holding[]): string | null {
   const dates = holdings.map((h) => h.queryDate).filter((d): d is string => d !== null);
   return dates.length > 0 ? dates.reduce((a, b) => (a > b ? a : b)) : null;
+}
+
+// ── Saldo caja (cash balance) ───────────────────────────────────────────────
+// The cash balance of every caja as of a date, valued in the requested currency.
+// This is the standing balance, not the flows `carteraMovements` reports (whose
+// per-row `balance` is a running total, never surfaced as a result of its own).
+// Observed at /frontoffice/shared/Dashboard/ResumenSaldoCaja on 2026-07-31; wire
+// shape + field mapping in docs/vector-contract/cartera.md.
+
+/** One caja's cash balance. */
+export interface CashBalance {
+  bucketId: number;
+  account: string;
+  /** The portal's own key for the caja, e.g. the account number dash-separated. */
+  identifier: string;
+  /** The caja's OWN currency — not necessarily the queried one. */
+  currency: string;
+  /** Market code the caja belongs to (e.g. `N` national). */
+  market: string;
+  /** Balance in the caja's own `currency`. */
+  amount: number;
+  /** The same balance in the QUERIED currency — the only cross-caja summable field. */
+  amountConverted: number;
+}
+
+/** The saldo envelope — the integration contract a consumer parses. */
+export interface SaldoResult {
+  currency: string;
+  fecha: string;
+  balances: CashBalance[];
+  /** Sum of `amountConverted`, in `currency`. */
+  total: number;
+}
+
+export interface SaldoQuery {
+  /** Account id to filter on; 0 = all accounts (the default). */
+  accountId?: number;
+  /** Valuation currency for `codMonedaSld` (e.g. `CLP`, `USD`). Default `CLP`. */
+  currency?: string;
+  /** Balance date `YYYY-MM-DD`. Default: today (from the Clock seam). */
+  fecha?: string;
+}
+
+/** Fetch the cash balance of every caja as of `fecha`, each valued in `currency`,
+ *  plus a grand total. The default date comes from the Clock seam so it is testable. */
+export async function carteraSaldo(rt: Runtime, query: SaldoQuery = {}): Promise<SaldoResult> {
+  const accountId = query.accountId ?? 0;
+  const currency = query.currency ?? 'CLP';
+  const fecha = query.fecha ?? isoDate(rt.clock.now());
+
+  return audited(
+    rt,
+    'cartera.saldo',
+    async () => {
+      const res = await request(rt, {
+        method: 'GET',
+        path: ENDPOINTS.carteraSaldo,
+        params: { id: accountId, tipo: 'Cuenta', codMonedaSld: currency, fecha },
+      });
+      if (res.status >= 400) {
+        throw new ApiError(
+          res.status,
+          `Failed to load cartera saldo (${res.status} ${res.statusText}): ${await res.text()}`,
+        );
+      }
+
+      const payload: unknown = await res.json();
+      if (!Array.isArray(payload)) {
+        throw new ContractError('Cartera saldo response was not a JSON array.');
+      }
+
+      const balances = payload
+        .filter((b): b is Record<string, unknown> => typeof b === 'object' && b !== null)
+        .map(toCashBalance);
+      // Only `amountConverted` shares a currency across cajas, so it is what totals.
+      return { currency, fecha, balances, total: sum(balances.map((b) => b.amountConverted)) };
+    },
+    { accountId, currency, fecha },
+  );
+}
+
+function toCashBalance(raw: Record<string, unknown>): CashBalance {
+  return {
+    bucketId: asInt(raw.idCajaCuenta),
+    account: asStr(raw.numCuenta),
+    identifier: asStr(raw.identificador),
+    currency: asStr(raw.codMoneda),
+    market: asStr(raw.codMercado),
+    amount: asFloat(raw.monto),
+    amountConverted: asFloat(raw.montoConvertido),
+  };
 }

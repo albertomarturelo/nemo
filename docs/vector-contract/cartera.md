@@ -130,3 +130,54 @@ totals grouped by classification.
   pnl, pnlPct }`.
 - **Errors:** `>= 400` → `ApiError(status, verbatimBody)`; a non-array body →
   `ContractError` (re-observe).
+
+## Saldo caja (wired)
+
+The standing cash balance of every caja as of a date, each valued in a chosen
+currency. Distinct from Movements: that endpoint reports the *flows* (its per-row
+`saldo` is a running balance mid-series), this one reports the *balance*.
+
+Observed on the live portal on **2026-07-31**.
+
+- **Method / path:** `GET /frontoffice/shared/Dashboard/ResumenSaldoCaja`
+- **Auth:** `Authorization: Bearer <token>` (via `auth/session.request()`)
+- **Query params:**
+
+| Param | Meaning | Example |
+| --- | --- | --- |
+| `id` | account id; `0` = all accounts | `0` |
+| `tipo` | fixed selector | `Cuenta` |
+| `codMonedaSld` | valuation currency — drives `montoConvertido` | `CLP` / `USD` |
+| `fecha` | balance date `YYYY-MM-DD` | `2026-07-31` |
+
+- **Response (200):** a JSON **array** of cajas, one row each (no nesting —
+  unlike Movements, which nests `movimientos` under a bucket). Curated fields
+  (missing → empty/zero); all values below are **synthetic** (ADR-012):
+
+```jsonc
+[
+  {
+    "idCajaCuenta": 900001, // bucketId — same id space as the Movements buckets
+    "monto": 125000.0, // amount, in this caja's OWN codMoneda
+    "numCuenta": "99999999/0", // account
+    "codMoneda": "CLP", // the caja's own currency
+    "codMercado": "N", // market — "N" national, "I" international
+    "identificador": "99999999-0", // the portal's key for the caja (numCuenta, dash-separated)
+    "montoConvertido": 125000.0 // amountConverted — `monto` valued in codMonedaSld
+  }
+]
+```
+
+> `monto` and `montoConvertido` are equal only when the caja's `codMoneda` already
+> matches the requested `codMonedaSld`. A USD caja queried with `codMonedaSld=CLP`
+> returns `monto` in USD and `montoConvertido` in CLP — so **only
+> `montoConvertido` is summable across cajas**, and it is what `total` adds up.
+
+- **Curated envelope the task returns:**
+  `{ currency, fecha, balances: CashBalance[], total }` where `CashBalance` =
+  `{ bucketId, account, identifier, currency, market, amount, amountConverted }`
+  and `total` = the sum of `amountConverted`, expressed in `currency`.
+- **Defaults:** `id = 0` (all accounts), `codMonedaSld = CLP`, `fecha` = today,
+  read from the `Clock` seam so it stays testable.
+- **Errors:** `>= 400` → `ApiError(status, verbatimBody)`; a non-array body →
+  `ContractError` (re-observe).
