@@ -157,16 +157,24 @@ Observed on the live portal on **2026-07-31**.
 ```jsonc
 [
   {
-    "idCajaCuenta": 900001, // bucketId — same id space as the Movements buckets
+    "idCajaCuenta": 900001, // bucketId
     "monto": 125000.0, // amount, in this caja's OWN codMoneda
     "numCuenta": "99999999/0", // account
     "codMoneda": "CLP", // the caja's own currency
-    "codMercado": "N", // market — "N" national, "I" international
-    "identificador": "99999999-0", // the portal's key for the caja (numCuenta, dash-separated)
+    "codMercado": "N", // market
+    "identificador": "99999999-0", // the portal's key for the caja
     "montoConvertido": 125000.0 // amountConverted — `monto` valued in codMonedaSld
   }
 ]
 ```
+
+> **Not observed — do not assume.** The sample above came from a single-caja,
+> single-currency response, so three things are still unknown: whether
+> `idCajaCuenta` shares an id space with the Movements buckets, what `codMercado`
+> values other than `"N"` exist and what they mean, and whether `identificador` is
+> always `numCuenta` with the slash swapped for a dash. All three are passed
+> through verbatim and nothing in the code depends on them. Re-observe before
+> relying on any of them.
 
 > `monto` and `montoConvertido` are equal only when the caja's `codMoneda` already
 > matches the requested `codMonedaSld`. A USD caja queried with `codMonedaSld=CLP`
@@ -181,3 +189,10 @@ Observed on the live portal on **2026-07-31**.
   read from the `Clock` seam so it stays testable.
 - **Errors:** `>= 400` → `ApiError(status, verbatimBody)`; a non-array body →
   `ContractError` (re-observe).
+
+> **Accepted risk on `total`.** A missing or renamed `montoConvertido` projects to
+> `0` (the "missing → empty/zero, never a crash" rule the whole module follows), so
+> a field rename would make `total` under-report silently instead of raising. Kept
+> deliberately: a per-row `ContractError` would break that rule for every other
+> curated field too. If `total` ever looks low, re-observe the field names before
+> trusting it.

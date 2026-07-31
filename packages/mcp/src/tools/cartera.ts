@@ -1,5 +1,6 @@
-// Cartera (portfolio) MCP tools. One append-only `registerCarteraTools` call from
-// server.ts (ADR-007); later reads (summary) add sibling tools here.
+// Cartera (portfolio) MCP tools: movements, summary, saldo. One append-only
+// `registerCarteraTools` call from server.ts (ADR-007); a later read adds a
+// sibling tool here.
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import {

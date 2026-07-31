@@ -419,6 +419,8 @@ describe('carteraSaldo', () => {
         json: [
           rawSaldo({}),
           // A USD caja: `monto` stays in USD, `montoConvertido` is its CLP valuation.
+          // `codMercado: 'I'` is invented — only 'N' has been observed, and the
+          // field is pass-through, so the value only proves it survives the mapping.
           rawSaldo({
             idCajaCuenta: 900002,
             codMoneda: 'USD',

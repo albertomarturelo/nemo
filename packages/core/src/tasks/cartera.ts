@@ -564,11 +564,12 @@ function latestQueryDate(holdings: readonly Holding[]): string | null {
 export interface CashBalance {
   bucketId: number;
   account: string;
-  /** The portal's own key for the caja, e.g. the account number dash-separated. */
+  /** The portal's own key for the caja. Passed through verbatim — its relation to
+   *  `account` is unobserved beyond a single sample. */
   identifier: string;
   /** The caja's OWN currency — not necessarily the queried one. */
   currency: string;
-  /** Market code the caja belongs to (e.g. `N` national). */
+  /** Market code the caja belongs to. Only `N` has been observed; passed through. */
   market: string;
   /** Balance in the caja's own `currency`. */
   amount: number;

@@ -1,5 +1,5 @@
-// `nemo cartera …` — cartera (portfolio) reads. First subcommand: movements. Later
-// reads (summary) add a sibling here. Append-only: one `registerCartera` call from
+// `nemo cartera …` — cartera (portfolio) reads: movements, summary, saldo. A later
+// read adds a sibling subcommand here. Append-only: one `registerCartera` call from
 // program.ts (ADR-007).
 import type { Command } from 'commander';
 import {

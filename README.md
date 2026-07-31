@@ -89,10 +89,8 @@ fallido, `1` cualquier otro error.
 Recursos de orientación (`nemo://session`, `nemo://config`) y tools de lectura
 (`auth_status`, `auth_logout`, `instruments_local`, `instruments_international`,
 `instrument_prices`, `cartera_summary`, `cartera_movements`, `cartera_saldo`).
-**No hay tool de
-login** — la
-contraseña es exclusiva de la CLI (ADR-006). Las lecturas requieren una sesión ya
-iniciada (`nemo auth login` en la terminal).
+**No hay tool de login** — la contraseña es exclusiva de la CLI (ADR-006). Las
+lecturas requieren una sesión ya iniciada (`nemo auth login` en la terminal).
 
 ## Desarrollo
 
