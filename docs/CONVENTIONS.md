@@ -130,6 +130,39 @@ ADR-016). It starts with the load-bearing rules ported from the proven Python
   the shipped English one; ADR-007 keeps it as the structural template regardless).
   See ADR-013.
 
+## Releases & publishing
+
+- **Release tags name their package: `<pkg>-v<version>`** (`core-v0.2.0`,
+  `cli-v0.1.0`). Each package versions independently — there is no lockstep
+  release. A bare `v*` tag is legacy and means nothing now (ADR-014 / ADR-015).
+- **The `npm-publish` Environment's deployment tag policy is the gate**, not the
+  workflow trigger. It decides which ref can read `NPM_TOKEN`, so a tag matching
+  the workflow but not the policy produces a job that starts and cannot
+  authenticate. Update the policy in the SAME change that adds or renames a tag
+  prefix — it lives in the GitHub UI, not in the repo, so nothing in CI catches
+  a drift.
+- **Verify the tarball, not the green checkmark, before tagging.** Run `pnpm
+  --filter <pkg> pack`, list its contents, and read the packed `package.json`.
+  Two things CI cannot see: files that compile into `dist/` but should never
+  ship (test helpers — exclude them in the package's `tsconfig.json`, as
+  `packages/cli` does), and `workspace:` dependency ranges, which must appear
+  rewritten to real semver (`^0.1.0`) in the packed manifest. Install the
+  tarball into a throwaway prefix and run the binary once; that is the only
+  check that proves the shebang, `bin` wiring, and dependency resolution work
+  off-workspace.
+- **A successful publish job is not proof of a published package.** Confirm
+  against the registry itself. Expect visibility to lag a publish by minutes —
+  an early 404 is not a failure. Note that an anonymous 404 cannot distinguish
+  "not there" from "published private", so check while authenticated when it
+  matters.
+- **A user-visible version literal must be tested against `package.json`.** The
+  CLI's `--version` is a literal in `program.ts`; once a package is installable
+  it is the only way a user can tell what they have, so a test asserts the two
+  agree (`packages/cli/src/program.test.ts`).
+- **Publishing a package that was `private` is a decision, not a chore** — it
+  puts command names, flags, exit codes, and output shape under semver. It gets
+  an ADR (ADR-015).
+
 ## Commits & PRs
 
 - One topic per commit. Conventional Commits subject (`feat(scope): …`),
