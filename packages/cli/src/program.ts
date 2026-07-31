@@ -15,7 +15,7 @@ export function buildProgram(runtime: Runtime, prompters: Prompters = nodePrompt
   program
     .name('nemo')
     .description('CLI for the Vector Capital broker portal (Chile).')
-    .version('0.1.0');
+    .version('0.2.0');
   // Output is JSON by default (the @albertomarturelo/nemo-core data contract); `--human` for text.
   withOutputFlags(program);
 
