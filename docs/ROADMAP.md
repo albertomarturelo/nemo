@@ -33,6 +33,7 @@ surfaces → tests → docs).
 | Instrument price history | `instrumentPrices` | `instruments prices` | `instrument_prices` | ✅ |
 | Cartera summary (P&L) | `carteraSummary` | `cartera summary` | `cartera_summary` | ✅ |
 | Cartera movements | `carteraMovements` | `cartera movements` | `cartera_movements` | ✅ |
+| Cartera cash balance | `carteraSaldo` | `cartera saldo` | `cartera_saldo` | ✅ |
 
 All surface rows are wired. Every endpoint path lives in `config.ENDPOINTS` and
 each wired surface has its re-observed wire contract documented under
