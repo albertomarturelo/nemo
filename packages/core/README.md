@@ -32,5 +32,27 @@ console.log(await authStatus(rt));
 console.log(await instrumentsLocal(rt, { search: 'BCI' }));
 ```
 
+## Tasks
+
+Each task takes the `Runtime` as its first argument (the one pure helper,
+`sparkline`, does not) and returns a plain, JSON-serializable object — no `Date`
+/ `Map` / `Set` and no human formatting. That shape is the integration contract
+(ADR-010).
+
+| Task | Returns |
+| --- | --- |
+| `authStatus` | Local session state (`active` / `expiring` / `expired` / `logged_out`) — never touches the network |
+| `logout` | Drops the cached bearer token |
+| `instrumentsLocal` | Chilean instruments, paged: `{ market, page, pageSize, total, items }` |
+| `instrumentsInternational` | US-listed instruments, same paged shape |
+| `instrumentPrices` | ~1y daily price history with pure client-side stats: `{ points, stats }` |
+| `sparkline` | Pure helper — renders a price series as a unicode sparkline |
+| `carteraSummary` | Holdings valued in one currency with computed P&L, plus totals by classification |
+| `carteraMovements` | Cash movements over a date range, classified per kind, with per-nemotécnico aggregates |
+| `carteraSaldo` | Standing cash balance per caja at a date, valued in one currency, plus a grand total (since 0.2.0) |
+
+`login` is deliberately absent from this barrel: it takes a password, so it is
+exported only from `@albertomarturelo/nemo-core/cli` (ADR-006).
+
 See [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) and the wire contracts
 under [`docs/vector-contract/`](../../docs/vector-contract/).
