@@ -89,6 +89,7 @@ centralizing the auth-renewal rails — not full hexagonal ceremony (ADR-003).
 | `tasks/instruments` (prices) | `instrumentPrices` — local daily price history + pure stats/sparkline | Done |
 | `tasks/instruments` (intl) | `instrumentsInternational` — US-listed assets; same `{ market, page, pageSize, total, items }` shape, wire envelope is `{ items, totalCount }` | Done |
 | `tasks/cartera` | Cash movements (classified + aggregated) + holdings summary (P&L, totals by classification) | Done |
+| `tasks/cartera` (saldo) | `carteraSaldo` — standing cash balance per caja as of a date; only `montoConvertido` totals | Done |
 | `adapters/node` | `FetchHttpClient` / `FileTokenStore` / `SystemClock` / `FileAuditSink` | Done |
 | `adapters/fake` | In-memory fakes for the four seams (`testing`) | Done |
 | `audit` | `audited()` wrapper — one receipt per task | Done |

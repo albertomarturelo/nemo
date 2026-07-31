@@ -22,6 +22,7 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
       'auth_logout',
       'auth_status',
       'cartera_movements',
+      'cartera_saldo',
       'cartera_summary',
       'instrument_prices',
       'instruments_international',
@@ -112,6 +113,40 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
     expect(payload.currency).toBe('CLP');
     expect(payload.holdings[0].pnl).toBe(200);
     expect(payload.totals).toMatchObject({ costBasis: 1000, marketValue: 1200, pnl: 200 });
+    expect(isError(res)).toBe(false);
+  });
+
+  it('cartera_saldo returns the cash-balance envelope over a live session', async () => {
+    const http = new testing.FakeHttpClient((req) => {
+      expect(req.params).toMatchObject({
+        tipo: 'Cuenta',
+        codMonedaSld: 'CLP',
+        fecha: '2026-07-31',
+      });
+      return {
+        json: [
+          {
+            idCajaCuenta: 900001,
+            monto: 125_000,
+            numCuenta: '99999999/0',
+            codMoneda: 'CLP',
+            codMercado: 'N',
+            identificador: '99999999-0',
+            montoConvertido: 125_000,
+          },
+        ],
+      };
+    });
+    const client = await connect(
+      makeRuntime({ http, tokens: new testing.MemoryTokenStore(FRESH_TOKEN) }),
+    );
+    const res = await client.callTool({
+      name: 'cartera_saldo',
+      arguments: { fecha: '2026-07-31' },
+    });
+    const payload = JSON.parse(toolText(res));
+    expect(payload).toMatchObject({ currency: 'CLP', fecha: '2026-07-31', total: 125_000 });
+    expect(payload.balances[0]).toMatchObject({ bucketId: 900001, amount: 125_000 });
     expect(isError(res)).toBe(false);
   });
 

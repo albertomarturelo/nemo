@@ -1,8 +1,13 @@
-// `nemo cartera …` — cartera (portfolio) reads. First subcommand: movements. Later
-// reads (summary) add a sibling here. Append-only: one `registerCartera` call from
+// `nemo cartera …` — cartera (portfolio) reads: movements, summary, saldo. A later
+// read adds a sibling subcommand here. Append-only: one `registerCartera` call from
 // program.ts (ADR-007).
 import type { Command } from 'commander';
-import { carteraMovements, carteraSummary, type Runtime } from '@albertomarturelo/nemo-core';
+import {
+  carteraMovements,
+  carteraSaldo,
+  carteraSummary,
+  type Runtime,
+} from '@albertomarturelo/nemo-core';
 import { emit, out } from '../io.js';
 
 export function registerCartera(program: Command, runtime: Runtime): void {
@@ -72,4 +77,24 @@ export function registerCartera(program: Command, runtime: Runtime): void {
         });
       },
     );
+
+  cartera
+    .command('saldo')
+    .description('Show the cash balance of every caja, valued in one currency.')
+    .option('--account-id <id>', 'Account id to filter on (0 = all accounts).', '0')
+    .option('--currency <code>', 'Valuation currency, e.g. CLP or USD.', 'CLP')
+    .option('--fecha <date>', 'Balance date YYYY-MM-DD (default: today).')
+    .action(async (opts: { accountId: string; currency: string; fecha?: string }) => {
+      const result = await carteraSaldo(runtime, {
+        accountId: Number(opts.accountId),
+        currency: opts.currency,
+        ...(opts.fecha !== undefined ? { fecha: opts.fecha } : {}),
+      });
+      emit(result, () => {
+        out(`Saldo caja (${result.currency}) @ ${result.fecha}`);
+        for (const b of result.balances)
+          out(`  ${b.account}\t${b.market}\t${b.amount} ${b.currency}\t→ ${b.amountConverted}`);
+        out(`  TOTAL\t${result.total} ${result.currency}`);
+      });
+    });
 }

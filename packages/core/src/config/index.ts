@@ -18,6 +18,7 @@ export const ENDPOINTS = {
   carteraSummary: '/frontoffice/shared/cartera/CierreCarteraResumidaOnline',
   instrumentPrices: '/frontoffice/shared/PublicadorPrecio/GetPreciosInstrumento',
   carteraMovements: '/frontoffice/shared/MovimientosCajas/Movimientos',
+  carteraSaldo: '/frontoffice/shared/Dashboard/ResumenSaldoCaja',
 } as const;
 
 /** Renew a cached token this many seconds before its `exp` (proactive refresh,

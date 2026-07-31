@@ -5,10 +5,11 @@ import {
   MemoryTokenStore,
   fakeRuntime,
 } from '../adapters/fake/index.js';
-import { ContractError, NotAuthenticatedError } from '../errors/index.js';
+import { ApiError, ContractError, NotAuthenticatedError } from '../errors/index.js';
 import {
   classifyMovement,
   carteraMovements,
+  carteraSaldo,
   carteraSummary,
   computePnl,
   summarizeHoldings,
@@ -383,5 +384,120 @@ describe('carteraSummary', () => {
     const result = await carteraSummary(rt);
     expect(result.holdings).toHaveLength(1);
     expect(await tokens.get()).toBe('renewed');
+  });
+});
+
+// ── Saldo caja (cash balance) ───────────────────────────────────────────────
+// All fixtures below are SYNTHETIC (ADR-012): invented amounts and account numbers.
+
+/** A synthetic raw saldo row in the portal's wire shape (real field names). */
+function rawSaldo(over: Record<string, unknown>): Record<string, unknown> {
+  return {
+    idCajaCuenta: 900001,
+    monto: 125_000,
+    numCuenta: '99999999/0',
+    codMoneda: 'CLP',
+    codMercado: 'N',
+    identificador: '99999999-0',
+    montoConvertido: 125_000,
+    ...over,
+  };
+}
+
+describe('carteraSaldo', () => {
+  it('maps every caja, totals the converted amounts, and defaults `fecha` from the Clock seam', async () => {
+    const clockMs = Date.UTC(2026, 6, 31); // 2026-07-31
+    const http = new FakeHttpClient((req) => {
+      expect(req.url).toContain('/frontoffice/shared/Dashboard/ResumenSaldoCaja');
+      expect(req.params).toMatchObject({
+        id: 0,
+        tipo: 'Cuenta',
+        codMonedaSld: 'CLP',
+        fecha: '2026-07-31',
+      });
+      return {
+        json: [
+          rawSaldo({}),
+          // A USD caja: `monto` stays in USD, `montoConvertido` is its CLP valuation.
+          // `codMercado: 'I'` is invented — only 'N' has been observed, and the
+          // field is pass-through, so the value only proves it survives the mapping.
+          rawSaldo({
+            idCajaCuenta: 900002,
+            codMoneda: 'USD',
+            codMercado: 'I',
+            monto: 200,
+            montoConvertido: 190_000,
+          }),
+        ],
+      };
+    });
+    const rt = fakeRuntime({
+      http,
+      tokens: new MemoryTokenStore(FRESH),
+      clock: new FixedClock(clockMs),
+    });
+
+    const result = await carteraSaldo(rt);
+    expect(result.currency).toBe('CLP');
+    expect(result.fecha).toBe('2026-07-31');
+    expect(result.balances).toHaveLength(2);
+    expect(result.balances[0]).toEqual({
+      bucketId: 900001,
+      account: '99999999/0',
+      identifier: '99999999-0',
+      currency: 'CLP',
+      market: 'N',
+      amount: 125_000,
+      amountConverted: 125_000,
+    });
+    // Only the converted amounts share a currency, so only they are summable.
+    expect(result.total).toBe(315_000);
+  });
+
+  it('threads accountId + currency + an explicit fecha into the query and is empty-safe', async () => {
+    const http = new FakeHttpClient((req) => {
+      expect(req.params).toMatchObject({ id: 42, codMonedaSld: 'USD', fecha: '2026-01-23' });
+      return { json: [] };
+    });
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+
+    const result = await carteraSaldo(rt, { accountId: 42, currency: 'USD', fecha: '2026-01-23' });
+    expect(result).toEqual({ currency: 'USD', fecha: '2026-01-23', balances: [], total: 0 });
+  });
+
+  it('fills a missing field with an empty/zero instead of crashing', async () => {
+    const http = new FakeHttpClient(() => ({ json: [{ idCajaCuenta: 900003 }] }));
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+
+    const result = await carteraSaldo(rt);
+    expect(result.balances[0]).toEqual({
+      bucketId: 900003,
+      account: '',
+      identifier: '',
+      currency: '',
+      market: '',
+      amount: 0,
+      amountConverted: 0,
+    });
+    expect(result.total).toBe(0);
+  });
+
+  it('passes the portal error body through as an ApiError', async () => {
+    const http = new FakeHttpClient(() => ({ status: 500, text: 'saldo unavailable' }));
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+
+    await expect(carteraSaldo(rt)).rejects.toBeInstanceOf(ApiError);
+    await expect(carteraSaldo(rt)).rejects.toThrow(/saldo unavailable/);
+  });
+
+  it('raises ContractError when the body is not a JSON array', async () => {
+    const http = new FakeHttpClient(() => ({ json: { unexpected: true } }));
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+    await expect(carteraSaldo(rt)).rejects.toBeInstanceOf(ContractError);
+  });
+
+  it('raises NotAuthenticatedError when no token is cached', async () => {
+    const rt = fakeRuntime({ tokens: new MemoryTokenStore(null) });
+    await expect(carteraSaldo(rt)).rejects.toBeInstanceOf(NotAuthenticatedError);
   });
 });

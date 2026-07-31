@@ -178,6 +178,57 @@ describe('nemo CLI', () => {
     expect(payload.totals).toMatchObject({ costBasis: 1000, marketValue: 1200, pnl: 200 });
   });
 
+  it('cartera saldo → cash-balance JSON envelope (synthetic, faked portal)', async () => {
+    const http = new FakeHttpClient((req) => {
+      expect(req.params).toMatchObject({
+        id: 0,
+        tipo: 'Cuenta',
+        codMonedaSld: 'CLP',
+        fecha: '2026-07-31',
+      });
+      return {
+        json: [
+          {
+            idCajaCuenta: 900001,
+            monto: 125_000,
+            numCuenta: '99999999/0',
+            codMoneda: 'CLP',
+            codMercado: 'N',
+            identificador: '99999999-0',
+            montoConvertido: 125_000,
+          },
+        ],
+      };
+    });
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+    cap = captureStdout();
+    await run(rt, ['cartera', 'saldo', '--fecha', '2026-07-31']);
+    const payload = JSON.parse(cap.text());
+    expect(payload).toMatchObject({ currency: 'CLP', fecha: '2026-07-31', total: 125_000 });
+    expect(payload.balances[0]).toMatchObject({ bucketId: 900001, amountConverted: 125_000 });
+  });
+
+  it('cartera saldo --human → renders one line per caja plus the total', async () => {
+    const http = new FakeHttpClient(() => ({
+      json: [
+        {
+          numCuenta: '99999999/0',
+          codMoneda: 'USD',
+          codMercado: 'I',
+          monto: 200,
+          montoConvertido: 190_000,
+        },
+      ],
+    }));
+    const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+    cap = captureStdout();
+    await run(rt, ['cartera', 'saldo', '--fecha', '2026-07-31', '--human']);
+    const text = cap.text();
+    expect(text).toContain('Saldo caja (CLP) @ 2026-07-31');
+    expect(text).toContain('200 USD');
+    expect(text).toContain('TOTAL\t190000 CLP');
+  });
+
   it('reports the published package version', () => {
     // `--version` is a literal in program.ts while a release bumps package.json
     // (the tag/version gate reads package.json, ADR-015). Once the CLI is

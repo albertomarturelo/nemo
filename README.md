@@ -79,6 +79,7 @@ Salida **JSON por defecto** (pipeable a `jq`); `--human` para lectura.
 | `nemo instruments prices --id <idInstrumento>` | Historial diario de precios (~1 año) con stats y sparkline |
 | `nemo cartera summary [--account-id] [--currency] [--no-dividends]` | Posiciones con P&L calculada y totales por clasificación |
 | `nemo cartera movements [--desde] [--hasta] [--account-id]` | Movimientos de efectivo clasificados por tipo |
+| `nemo cartera saldo [--account-id] [--currency] [--fecha]` | Saldo en caja por cuenta a una fecha, valorizado en una moneda, con total |
 
 Códigos de salida: `0` éxito, `2` sin sesión (o sesión expirada), `3` login
 fallido, `1` cualquier otro error.
@@ -87,10 +88,9 @@ fallido, `1` cualquier otro error.
 
 Recursos de orientación (`nemo://session`, `nemo://config`) y tools de lectura
 (`auth_status`, `auth_logout`, `instruments_local`, `instruments_international`,
-`instrument_prices`, `cartera_summary`, `cartera_movements`). **No hay tool de
-login** — la
-contraseña es exclusiva de la CLI (ADR-006). Las lecturas requieren una sesión ya
-iniciada (`nemo auth login` en la terminal).
+`instrument_prices`, `cartera_summary`, `cartera_movements`, `cartera_saldo`).
+**No hay tool de login** — la contraseña es exclusiva de la CLI (ADR-006). Las
+lecturas requieren una sesión ya iniciada (`nemo auth login` en la terminal).
 
 ## Desarrollo
 

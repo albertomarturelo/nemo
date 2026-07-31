@@ -39,6 +39,7 @@ nemo cartera summary --human
 | `nemo instruments prices --id <idInstrumento>`              | ~1y daily price history with stats + sparkline             |
 | `nemo cartera summary [--account-id] [--currency] …`        | Holdings with computed P&L and totals by classification    |
 | `nemo cartera movements [--desde] [--hasta] [--account-id]` | Cash movements over a date range, classified per kind      |
+| `nemo cartera saldo [--account-id] [--currency] [--fecha]`  | Cash balance per caja at a date, valued in one currency    |
 
 `--help` on any level lists the full flag set.
 

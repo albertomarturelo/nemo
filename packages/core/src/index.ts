@@ -27,7 +27,7 @@ export type {
   InternationalInstrumentsPage,
   InternationalInstrumentsQuery,
 } from './tasks/instruments.js';
-export { carteraMovements, carteraSummary } from './tasks/cartera.js';
+export { carteraMovements, carteraSummary, carteraSaldo } from './tasks/cartera.js';
 export type {
   MovementKind,
   Movement,
@@ -44,6 +44,9 @@ export type {
   SummaryTotals,
   SummaryResult,
   SummaryQuery,
+  CashBalance,
+  SaldoResult,
+  SaldoQuery,
 } from './tasks/cartera.js';
 
 // --- seams: the injectable contract a consumer composes a Runtime from ---
