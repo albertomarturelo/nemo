@@ -4,12 +4,17 @@ All notable changes to the CLI package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.0] — 2026-07-31
 
 ### Added
 
 - `nemo cartera saldo [--account-id] [--currency] [--fecha]` — the cash balance
   of every caja at a date, valued in one currency, with a grand total.
+
+### Changed
+
+- Requires `@albertomarturelo/nemo-core` >= 0.2.0, which is where `carteraSaldo`
+  lands.
 
 ## [0.1.0] — 2026-07-26
 
