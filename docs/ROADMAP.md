@@ -10,9 +10,9 @@ portal wire knowledge and guardrails are **ported**, the code is written fresh.
 One `@albertomarturelo/nemo-core` engine, two surfaces:
 
 - **`@albertomarturelo/nemo-cli`** — the terminal surface (and what Claude Code drives via Bash).
-  The only surface that can sign in (the password is CLI-only, ADR-006).
+  The only surface that takes a password (hidden prompt, ADR-006).
 - **`@nemo/mcp`** — a stdio MCP server, the integration point for **Claude Code**
-  AND **Claude Desktop** — read tools over an already-established session.
+  AND **Claude Desktop** — browser sign-in (`auth_login`) + read tools.
 
 Together they cover the day-to-day an investor performs against the broker
 portal: authenticate, browse instruments, and inspect the portfolio — with a
@@ -26,6 +26,7 @@ surfaces → tests → docs).
 | Capability | `@albertomarturelo/nemo-core` task | `nemo` CLI | `nemo-mcp` tool | Status |
 | --- | --- | --- | --- | --- |
 | Sign in (password) | `login` (cli subpath) | `auth login` | — (CLI-only, ADR-006) | ✅ |
+| Sign in (browser) | `browserLogin` | — (CLI keeps the prompt) | `auth_login` | ✅ |
 | Session status | `authStatus` | `auth status` | `auth_status` + `nemo://session` | ✅ |
 | Log out | `logout` | `auth logout` | `auth_logout` | ✅ |
 | Local instruments | `instrumentsLocal` | `instruments local` | `instruments_local` | ✅ |
