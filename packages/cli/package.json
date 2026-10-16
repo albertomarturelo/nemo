@@ -1,6 +1,6 @@
 {
   "name": "@albertomarturelo/nemo-cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Human-facing CLI (`nemo`) for the Vector Capital portal. Each command is a thin call into @albertomarturelo/nemo-core tasks (ADR-003).",
   "license": "MIT",
