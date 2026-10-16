@@ -108,6 +108,18 @@ without a yes in THIS conversation.
    If the prefix is missing, stop. The publish job would start and then fail to
    read `NPM_TOKEN`. Ask the user to add it in the UI.
 
+   Then check the token's age. A granular npm write token lives at most 90 days:
+
+   ```bash
+   gh api repos/albertomarturelo/nemo/environments/npm-publish/secrets --jq '.secrets[] | "\(.name) \(.updated_at)"'
+   ```
+
+   If it is near or past 90 days, have the user rotate it BEFORE tagging. The
+   token must be a Granular Access Token with Read and write on both packages
+   and **"Bypass two-factor authentication" checked**. The user sets it with
+   `! gh secret set NPM_TOKEN --env npm-publish --repo albertomarturelo/nemo`, so
+   the value never enters the chat.
+
 2. **Core first.** Tag the release PR's own merge commit, not whatever `main`
    points to now: a later merge must not ride into the release.
 
@@ -123,8 +135,16 @@ without a yes in THIS conversation.
    npm view @albertomarturelo/nemo-core@<x> version   # retry for a few minutes
    ```
 
-   An early 404 is registry lag, not a failure; give it several minutes. A green
-   job is not proof. The registry is.
+   An early 404 from `npm view` is registry lag, not a failure; give it several
+   minutes. A green job is not proof. The registry is.
+
+   **If the publish job fails**, read `gh run view "$RUN" --log-failed`:
+   - `E404 … PUT` means npm rejected the token (expired or wrong scope). npm
+     answers 404, not 403.
+   - `EOTP` means the token cannot bypass 2FA.
+
+   Have the user rotate the token as above, then `gh run rerun "$RUN"`. Nothing
+   was published, so the tag stays where it is: never delete or move it to retry.
 
 3. **Then the CLI**, only once core is visible: the same commands, on the same
    `SHA`, with `cli-v<y>`, `publish-cli.yml` and `@albertomarturelo/nemo-cli`.
