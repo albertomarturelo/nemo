@@ -188,6 +188,17 @@ checklist for the rules below and stops for an explicit OK before any tag.
   the first branch, so each PR shows only its own diff and closes only its own
   issue. Never one PR spanning two issues (PR #7 merged the `cartera` rename +
   the summary feature together — a mixed PR to avoid).
+- **Merging a stacked pair: retarget the top PR BEFORE the base merges.** CI
+  runs only on PRs into `main`, so the top PR has no checks while it is stacked.
+  Merging the base with `--delete-branch` makes GitHub CLOSE the top PR, and a
+  force-push while it is closed makes it impossible to reopen. The order is:
+  1. `gh pr edit <top> --base main`;
+  2. merge the base;
+  3. rebase the top onto `main` with `git rebase --onto main <old-base-tip>`
+     and force-push;
+  4. let CI run, then merge.
+
+  PR #24 hit both traps and had to be recovered by restoring its old head.
 - **Status docs go in a SEPARATE commit from feature code.**
   `CURRENT_STATUS.md` / `ROADMAP.md` bookkeeping is its own commit; the feature
   commit carries code plus its tightly-coupled docs only (the ADR + any
