@@ -23,7 +23,10 @@ const jsonResource = (uri: URL, value: unknown) => ({
 
 /** Build the MCP server over an injected Runtime (tests pass fakes; no network). */
 export function buildServer(runtime: Runtime): McpServer {
-  const server = new McpServer({ name: 'nemo', version: '0.1.0' });
+  // The version is advertised in the initialize handshake, so it must equal
+  // package.json — server.test.ts guards it. 0.0.0 while the package is private
+  // and unreleased; the first publish sets the real version (ADR-015 shape).
+  const server = new McpServer({ name: 'nemo', version: '0.0.0' });
 
   // --- Resources: read-only context the model reads to orient ---
   server.registerResource(
