@@ -75,11 +75,17 @@ jobs:
           done < <(grep -oE '\]\([0-9][a-zA-Z0-9-]*\.md\)' docs/decisions/_index.md | sed -E 's/^\]\(//; s/\)$//' | sort -u)
           exit $fail
 
-      - name: ADR slug uniqueness (ADR adopt-cfd-upstream-revisions)
+      - name: ADR IDs — unique slugs, no new numbers (ADR adopt-cfd-upstream-revisions)
         # The slug is a date-prefixed ADR's identity. Two branches deciding the same
         # thing in parallel can both land one; reconcile them into one or supersede.
+        # Numbered ADRs stop at 015; a new NNN-*.md re-opens the counter race.
         run: |
           set -euo pipefail
+          late=$(ls docs/decisions | grep -E '^[0-9]{3}-.+\.md$' | awk -F- '$1+0 > 15' || true)
+          if [ -n "$late" ]; then
+            echo "::error::New numbered ADR(s): $late. Name new ADRs docs/decisions/YYYY-MM-DD-<slug>.md."
+            exit 1
+          fi
           dupes=$(ls docs/decisions \
             | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}-.+\.md$' \
             | sed -E 's/^[0-9]{4}-[0-9]{2}-[0-9]{2}-//' \

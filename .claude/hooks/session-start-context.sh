@@ -10,6 +10,9 @@
 # portable source of truth (ADR adopt-cfd-upstream-revisions).
 set -uo pipefail
 
+# Paths below are repo-relative; the session may start in a subdirectory.
+cd "${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}" || exit 0
+
 [ -f docs/CURRENT_STATUS.md ] || {
   echo "docs/CURRENT_STATUS.md is missing (gitignored, per-clone). Run /session-start to bootstrap it."
   exit 0
@@ -30,8 +33,10 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   if git ls-files --error-unmatch docs/CURRENT_STATUS.md >/dev/null 2>&1; then
     last_status=$(git log -1 --format=%ct -- docs/CURRENT_STATUS.md 2>/dev/null)
   else
-    last_status=$(stat -f %m docs/CURRENT_STATUS.md 2>/dev/null \
-      || stat -c %Y docs/CURRENT_STATUS.md 2>/dev/null)
+    # GNU first: GNU `stat -f` means --file-system and would print fs info
+    # before failing; BSD rejects `-c` without writing to stdout.
+    last_status=$(stat -c %Y docs/CURRENT_STATUS.md 2>/dev/null \
+      || stat -f %m docs/CURRENT_STATUS.md 2>/dev/null)
   fi
   last_commit=$(git log -1 --format=%ct 2>/dev/null)
   if [ -n "${last_commit:-}" ] && [ "${last_commit:-0}" -gt $(( ${last_status:-0} + 86400 )) ]; then
