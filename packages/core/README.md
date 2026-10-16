@@ -14,12 +14,13 @@ CLI](../cli) and the [`nemo-mcp` server](../mcp).
   A surface never reaches past the task layer into the session/HTTP internals —
   that is where the auth-renewal and audit rails live (ADR-003).
 - **External side-effects are seams.** `HttpClient`, `TokenStore`, `Clock`, and
-  `AuditSink` are interfaces with Node defaults (`@albertomarturelo/nemo-core/node`) and
+  `AuditSink` (plus the optional `BrowserLogin`) are interfaces with Node defaults (`@albertomarturelo/nemo-core/node`) and
   in-memory fakes (`import { testing } from '@albertomarturelo/nemo-core'`). Tests inject
   fakes and never touch the network, disk, or clock.
 - **The password never enters the main barrel.** `login` (credential-taking) is
   exported only from `@albertomarturelo/nemo-core/cli`, so the MCP server cannot wire it
-  (ADR-006).
+  (ADR-006). `browserLogin` takes no credential: the user types the password into
+  Vector's own page in a browser window and only the token comes back.
 
 ## Usage
 
@@ -43,6 +44,7 @@ Each task takes the `Runtime` as its first argument (the one pure helper,
 | --- | --- |
 | `authStatus` | Local session state (`active` / `expiring` / `expired` / `logged_out`) — never touches the network |
 | `logout` | Drops the cached bearer token |
+| `browserLogin` | Signs in on Vector's own page in a headed browser and caches only the token; `{ authenticated, reason }`. Needs `runtime.browser` (`PlaywrightBrowserLogin` from `./node`, which needs the optional peer `playwright`) (since 0.3.0) |
 | `instrumentsLocal` | Chilean instruments, paged: `{ market, page, pageSize, total, items }` |
 | `instrumentsInternational` | US-listed instruments, same paged shape |
 | `instrumentPrices` | ~1y daily price history with pure client-side stats: `{ points, stats }` |
