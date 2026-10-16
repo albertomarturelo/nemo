@@ -56,8 +56,9 @@ publica con su propio tag (`core-v*` / `cli-v*`,
   que Claude Code use la CLI directamente por Bash.
 
 La contraseña nunca llega al LLM ni a disco. En la CLI se escribe en un prompt
-oculto (`nemo auth login`). En el MCP, `auth_login` abre un navegador en la página
-de login de Vector y la escribes ahí: el servidor solo recibe el token. Ningún tool
+oculto (`nemo auth login`), o con `--browser` en la página de Vector. En el MCP,
+`auth_login` abre un navegador en la página de login de Vector y la escribes ahí:
+el servidor solo recibe el token. Ningún tool
 de MCP recibe contraseña. Ver [ADR-006](docs/decisions/006-credentials-cli-only-never-mcp.md)
 y [`mcp-browser-login`](docs/decisions/2026-10-15-mcp-browser-login.md).
 
@@ -74,6 +75,7 @@ Salida **JSON por defecto** (pipeable a `jq`); `--human` para lectura.
 | Comando | Qué hace |
 | --- | --- |
 | `nemo auth login [--user <email>]` | Inicia sesión (prompt oculto de contraseña; cachea solo el token) |
+| `nemo auth login --browser` | Inicia sesión en la página de Vector en un navegador; la contraseña no pasa por nemo |
 | `nemo auth status` | Estado de la sesión local (`active` / `expiring` / `expired` / `logged_out`) |
 | `nemo auth logout` | Borra el token cacheado |
 | `nemo instruments local [--search] [--page] [--limit]` | Lista instrumentos chilenos |

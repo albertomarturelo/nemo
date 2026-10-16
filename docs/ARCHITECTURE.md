@@ -42,7 +42,8 @@ nemo/                         # pnpm workspaces, TypeScript project references
 - **`@albertomarturelo/nemo-cli`** — the human terminal surface (`nemo …`). Claude Code can also
   invoke it directly through its Bash tool, so the CLI doubles as an AI-usable
   surface inside Claude Code. It is the only surface that takes a password, at a
-  hidden prompt (ADR-006).
+  hidden prompt (ADR-006); `nemo auth login --browser` offers the same browser
+  sign-in the MCP uses.
 - **`@nemo/mcp`** — a stdio MCP server. Both **Claude Desktop** (via
   `claude_desktop_config.json`) and **Claude Code** (via `.mcp.json` / `claude
   mcp add`) consume stdio MCP servers, so this one package makes the same reads
@@ -82,7 +83,7 @@ centralizing the auth-renewal rails — not full hexagonal ceremony (ADR-003).
 | Module | Purpose | Status |
 | --- | --- | --- |
 | `config` | Base URL + endpoint paths + refresh window (single source of truth) | Done |
-| `seams` | `HttpClient` / `TokenStore` / `Clock` / `AuditSink` interfaces + `Runtime`; optional `BrowserLogin` (wired by the MCP only) | Done |
+| `seams` | `HttpClient` / `TokenStore` / `Clock` / `AuditSink` interfaces + `Runtime`; optional `BrowserLogin` (wired by both composition roots) | Done |
 | `errors` | `NotAuthenticated` / `SessionExpired` / `LoginFailed` / `ApiError` / `ContractError` | Done |
 | `auth/jwt` | Signature-unverified `exp` peek for proactive renewal | Done |
 | `auth/service` | `signIn` + `refreshToken` bootstrap calls over the HTTP seam | Done |

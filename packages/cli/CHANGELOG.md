@@ -4,6 +4,15 @@ All notable changes to the CLI package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `nemo auth login --browser` — sign in on Vector's own page in a browser window;
+  only the bearer token is cached and the password never enters nemo. The hidden
+  prompt stays the default. Needs Playwright's Chromium
+  (`npx playwright install chromium`) or an installed Google Chrome.
+
 ## [0.2.0] — 2026-07-31
 
 ### Added

@@ -32,6 +32,7 @@ nemo cartera summary --human
 | Command                                                    | What it does                                              |
 | ---------------------------------------------------------- | --------------------------------------------------------- |
 | `nemo auth login [--user <email>]`                          | Sign in; cache the bearer token                            |
+| `nemo auth login --browser`                                 | Sign in on Vector's own page in a browser window           |
 | `nemo auth status`                                          | Session state (local read — never touches the network)     |
 | `nemo auth logout`                                          | Drop the cached token                                      |
 | `nemo instruments local [--search] [--page] [--limit]`      | Chilean instruments, paged                                 |
