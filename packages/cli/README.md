@@ -66,13 +66,14 @@ Exit codes: `0` success, `2` not authenticated (including an expired session),
 The password is entered at a hidden prompt — never a flag, environment variable,
 or argument — held in memory for a single sign-in, then discarded. Only the
 resulting bearer token is cached, in a per-user file under `~/.nemo/`. No
-credential ever reaches an AI model: the sign-in path is exported only to this
-CLI, which is why the companion MCP server has no login tool.
+credential ever reaches an AI model: the password-taking sign-in is exported only
+to this CLI, and the companion MCP server signs in only through the browser,
+where the password is typed into Vector's own page.
 
 ## See also
 
 - [`@albertomarturelo/nemo-core`](../core) — the shared domain library.
-- `nemo-mcp` — MCP server exposing the same reads to Claude Code / Claude
-  Desktop over an already-established session.
+- [`@albertomarturelo/nemo-mcp`](../mcp) — MCP server exposing the same reads
+  to Claude Code / Claude Desktop, with a browser sign-in (`auth_login`).
 - [Architecture](../../docs/ARCHITECTURE.md) and the decision records under
   [`docs/decisions/`](../../docs/decisions/).

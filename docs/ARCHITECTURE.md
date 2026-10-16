@@ -33,7 +33,7 @@ nemo/                         # pnpm workspaces, TypeScript project references
 ├── packages/
 │   ├── core/  (@albertomarturelo/nemo-core)   # All domain logic. A Node library. Thin surfaces call its tasks.
 │   ├── cli/   (@albertomarturelo/nemo-cli)     # Human CLI (terminal). Also what Claude Code drives via Bash.
-│   └── mcp/   (@nemo/mcp)     # MCP stdio server. The integration point for Claude Code AND Claude Desktop.
+│   └── mcp/   (@albertomarturelo/nemo-mcp)     # MCP stdio server. The integration point for Claude Code AND Claude Desktop.
 ├── docs/                     # CFD context layer (this file lives here)
 ├── .agents/skills/           # CFD Agent Skills (.claude/skills is a symlink)
 └── .claude/hooks/            # SessionStart hook (injects CURRENT_STATUS + ADR index)
@@ -44,7 +44,7 @@ nemo/                         # pnpm workspaces, TypeScript project references
   surface inside Claude Code. It is the only surface that takes a password, at a
   hidden prompt (ADR-006); `nemo auth login --browser` offers the same browser
   sign-in the MCP uses.
-- **`@nemo/mcp`** — a stdio MCP server. Both **Claude Desktop** (via
+- **`@albertomarturelo/nemo-mcp`** — a stdio MCP server. Both **Claude Desktop** (via
   `claude_desktop_config.json`) and **Claude Code** (via `.mcp.json` / `claude
   mcp add`) consume stdio MCP servers, so this one package makes the same reads
   available to AI assistants in both clients. It offers `auth_login`,

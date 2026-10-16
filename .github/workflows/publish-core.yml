@@ -2,10 +2,11 @@ name: Publish core
 
 # CD for the public npm package @albertomarturelo/nemo-core, triggered by a
 # `core-v*` git tag (ADR-014, tag scheme amended by ADR-015). Only
-# `packages/core` is published here — the CLI has its own `cli-v*` workflow and
-# the two version independently, so this is not a lockstep release. `NPM_TOKEN`
-# lives in the `npm-publish` GitHub Environment whose deployment tag policy must
-# list both prefixes — a run triggered from any other ref cannot read it.
+# `packages/core` is published here — the CLI and the MCP server have their own
+# `cli-v*` / `mcp-v*` workflows and every package versions independently, so this
+# is not a lockstep release. `NPM_TOKEN` lives in the `npm-publish` GitHub
+# Environment whose deployment tag policy must list every prefix — a run
+# triggered from any other ref cannot read it.
 # `pnpm publish` is idempotent — an already-published version is skipped, not an
 # error. The pre-ADR-015 `v0.1.0` tag stays as historical record.
 

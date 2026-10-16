@@ -9,9 +9,10 @@ core are also tracked in [`packages/core/CHANGELOG.md`](packages/core/CHANGELOG.
 
 ### Added
 
-- Initial CFD scaffold — a TypeScript pnpm monorepo (`@albertomarturelo/nemo-core` +
-  `@albertomarturelo/nemo-cli` + `@nemo/mcp`), a ground-up rewrite of the Python `nemo-cli` with the
-  Vector Capital wire knowledge and guardrails ported.
+- Initial CFD scaffold — a TypeScript pnpm monorepo
+  (`@albertomarturelo/nemo-core` + `@albertomarturelo/nemo-cli` +
+  `@albertomarturelo/nemo-mcp`), a ground-up rewrite of the Python `nemo-cli`
+  with the Vector Capital wire knowledge and guardrails ported.
 - Shared core with four injectable seams (`HttpClient`, `TokenStore`, `Clock`,
   `AuditSink`) and a Node composition root (ADR-003).
 - Auth: bearer-token session with proactive + reactive `RefreshToken` renewal

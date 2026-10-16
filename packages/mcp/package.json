@@ -1,19 +1,47 @@
 {
-  "name": "@nemo/mcp",
+  "name": "@albertomarturelo/nemo-mcp",
   "version": "0.0.0",
-  "private": true,
   "type": "module",
   "description": "MCP server (stdio) for the Vector Capital portal. Each tool/resource is a thin call into @albertomarturelo/nemo-core tasks (ADR-003). Browser sign-in (auth_login, no password argument) plus the CLI's read surface (ADR mcp-browser-login).",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/albertomarturelo/nemo.git",
+    "directory": "packages/mcp"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
   "bin": {
     "nemo-mcp": "./dist/main.js"
   },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "vector-capital",
+    "corredora",
+    "bolsa",
+    "chile",
+    "nemo"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "dependencies": {
-    "@albertomarturelo/nemo-core": "workspace:*",
+    "@albertomarturelo/nemo-core": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "playwright": "^1.64.1",
     "zod": "^3.25.0"
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "prepack": "rm -rf dist tsconfig.tsbuildinfo && tsc -b"
   }
 }

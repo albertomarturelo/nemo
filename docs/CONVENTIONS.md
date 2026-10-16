@@ -149,8 +149,8 @@ checklist for the rules below and stops for an explicit OK before any tag.
   something that failed to ship.
 
 - **Release tags name their package: `<pkg>-v<version>`** (`core-v0.2.0`,
-  `cli-v0.1.0`). Each package versions independently — there is no lockstep
-  release. A bare `v*` tag is legacy and means nothing now (ADR-014 / ADR-015).
+  `cli-v0.1.0`, and `mcp-v<version>` for the MCP server). Each package versions
+  independently — there is no lockstep release. A bare `v*` tag is legacy and means nothing now (ADR-014 / ADR-015).
 - **The `npm-publish` Environment's deployment tag policy is the gate**, not the
   workflow trigger. It decides which ref can read `NPM_TOKEN`, so a tag matching
   the workflow but not the policy produces a job that starts and cannot
