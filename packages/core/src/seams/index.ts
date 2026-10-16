@@ -84,7 +84,7 @@ export interface Runtime {
   tokens: TokenStore;
   clock: Clock;
   audit: AuditSink;
-  /** Present only where browser sign-in is wired (the MCP server). The CLI signs in
-   *  with its hidden prompt and leaves this unset. */
+  /** Present only where a composition root wires browser sign-in (both surfaces
+   *  do). `browserLogin` fails with a pointer to `nemo auth login` without it. */
   browser?: BrowserLogin;
 }

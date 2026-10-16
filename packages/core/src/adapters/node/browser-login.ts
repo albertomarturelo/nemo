@@ -4,8 +4,8 @@
 // body (where the password travels) is never read — no `postData()` anywhere.
 //
 // `playwright` is an optional peer, imported lazily so `@albertomarturelo/nemo-core/node`
-// still loads where it is absent (the CLI never installs it). Type-only imports are
-// erased at compile time.
+// still loads where it is absent (an embedder that never signs in by browser).
+// Type-only imports are erased at compile time.
 import type { Browser, BrowserType, Response } from 'playwright';
 import { API_BASE_URL, ENDPOINTS, PORTAL_URL, WEB_SIGN_IN_PATH } from '../../config/index.js';
 import { tokenFromSignIn } from '../../auth/service.js';

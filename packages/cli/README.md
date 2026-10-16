@@ -32,7 +32,7 @@ nemo cartera summary --human
 | Command                                                    | What it does                                              |
 | ---------------------------------------------------------- | --------------------------------------------------------- |
 | `nemo auth login [--user <email>]`                          | Sign in; cache the bearer token                            |
-| `nemo auth login --browser`                                 | Sign in on Vector's own page in a browser window           |
+| `nemo auth login --browser`                                 | Sign in on Vector's own page in a browser window (\*)       |
 | `nemo auth status`                                          | Session state (local read — never touches the network)     |
 | `nemo auth logout`                                          | Drop the cached token                                      |
 | `nemo instruments local [--search] [--page] [--limit]`      | Chilean instruments, paged                                 |
@@ -41,6 +41,10 @@ nemo cartera summary --human
 | `nemo cartera summary [--account-id] [--currency] …`        | Holdings with computed P&L and totals by classification    |
 | `nemo cartera movements [--desde] [--hasta] [--account-id]` | Cash movements over a date range, classified per kind      |
 | `nemo cartera saldo [--account-id] [--currency] [--fecha]`  | Cash balance per caja at a date, valued in one currency    |
+
+(\*) `--browser` needs a browser: Playwright's Chromium
+(`npx playwright install chromium`) or an installed Google Chrome. The password
+is typed into Vector's page and never enters `nemo`; only the token is cached.
 
 `--help` on any level lists the full flag set.
 
