@@ -26,7 +26,7 @@ surfaces → tests → docs).
 | Capability | `@albertomarturelo/nemo-core` task | `nemo` CLI | `nemo-mcp` tool | Status |
 | --- | --- | --- | --- | --- |
 | Sign in (password) | `login` (cli subpath) | `auth login` | — (CLI-only, ADR-006) | ✅ |
-| Sign in (browser) | `browserLogin` | — (CLI keeps the prompt) | `auth_login` | ✅ |
+| Sign in (browser) | `browserLogin` | `auth login --browser` | `auth_login` | ✅ |
 | Session status | `authStatus` | `auth status` | `auth_status` + `nemo://session` | ✅ |
 | Log out | `logout` | `auth logout` | `auth_logout` | ✅ |
 | Local instruments | `instrumentsLocal` | `instruments local` | `instruments_local` | ✅ |
