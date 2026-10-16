@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// @nemo/mcp entry point. Wires the Node runtime into the server and serves over
-// stdio. STDOUT is the JSON-RPC channel — diagnostics go to STDERR only.
+// @albertomarturelo/nemo-mcp entry point. Wires the Node runtime into the server
+// and serves over stdio. STDOUT is the JSON-RPC channel — diagnostics go to STDERR
+// only.
 import { PlaywrightBrowserLogin, createNodeRuntime } from '@albertomarturelo/nemo-core/node';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { buildServer } from './server.js';

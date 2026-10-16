@@ -11,7 +11,7 @@ One `@albertomarturelo/nemo-core` engine, two surfaces:
 
 - **`@albertomarturelo/nemo-cli`** — the terminal surface (and what Claude Code drives via Bash).
   The only surface that takes a password (hidden prompt, ADR-006).
-- **`@nemo/mcp`** — a stdio MCP server, the integration point for **Claude Code**
+- **`@albertomarturelo/nemo-mcp`** — a stdio MCP server, the integration point for **Claude Code**
   AND **Claude Desktop** — browser sign-in (`auth_login`) + read tools.
 
 Together they cover the day-to-day an investor performs against the broker
@@ -46,7 +46,9 @@ each wired surface has its re-observed wire contract documented under
 - ✅ Publish `@albertomarturelo/nemo-cli` (npm) — `cli-v*` tag-triggered CD; release
   tags are package-prefixed (`core-v*` / `cli-v*`) so the two version
   independently (ADR-015).
-- ⬜ Publish `@nemo/mcp` as `@albertomarturelo/nemo-mcp` (`mcp-v*`) — same shape as
-  the CLI; needs no new decision (ADR-015).
+- ⬜ Publish `@albertomarturelo/nemo-mcp` (npm) — `mcp-v*` tag-triggered CD, same
+  shape as the CLI; needs no new decision (ADR-015). Package + workflow in place;
+  the first release (via `/release`) waits on the Claude Desktop `auth_login`
+  timeout test.
 - ⬜ Coverage gate in CI (mirror nemo-cli's ≥95%).
 - ⬜ `--account-id` / multi-account selection once the portfolio reads exist.

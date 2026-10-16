@@ -24,8 +24,8 @@ importar cuál esté al frente.
 ```text
 packages/
   core/   @albertomarturelo/nemo-core   Núcleo de dominio (librería Node). Las superficies llaman solo a sus tasks.
-  cli/    @albertomarturelo/nemo-cli     CLI humana (`nemo`). También lo que Claude Code corre vía Bash. La ÚNICA que inicia sesión.
-  mcp/    @nemo/mcp     Servidor MCP (`nemo-mcp`, stdio). Punto de integración para Claude Code y Claude Desktop.
+  cli/    @albertomarturelo/nemo-cli    CLI humana (`nemo`). También lo que Claude Code corre vía Bash. La ÚNICA que recibe contraseña.
+  mcp/    @albertomarturelo/nemo-mcp    Servidor MCP (`nemo-mcp`, stdio). Punto de integración para Claude Code y Claude Desktop.
 docs/                   Capa de contexto CFD (ARCHITECTURE, CONVENTIONS, ADRs, vector-contract…).
 ```
 
@@ -44,16 +44,27 @@ nemo auth login
 
 Requiere Node `>=20`. El núcleo se publica aparte como
 [`@albertomarturelo/nemo-core`](https://www.npmjs.com/package/@albertomarturelo/nemo-core)
-si quieres consumirlo como librería. Cada paquete versiona por separado y se
-publica con su propio tag (`core-v*` / `cli-v*`,
+si quieres consumirlo como librería, y el servidor MCP como
+[`@albertomarturelo/nemo-mcp`](packages/mcp/README.md) (ver abajo). Cada paquete
+versiona por separado y se publica con su propio tag (`core-v*` / `cli-v*` / `mcp-v*`,
 [ADR-015](docs/decisions/015-publish-cli-npm-per-package-tags.md)).
 
 ## Cómo se usa con Claude
 
-- **Claude Desktop** — conecta el servidor MCP (`nemo-mcp`, stdio) vía
-  `claude_desktop_config.json`.
-- **Claude Code** — conecta el mismo MCP (`.mcp.json` / `claude mcp add`), y/o deja
-  que Claude Code use la CLI directamente por Bash.
+- **Claude Desktop** — conecta el servidor MCP (`nemo-mcp`, stdio) en
+  `claude_desktop_config.json`:
+
+  ```json
+  {
+    "mcpServers": {
+      "nemo": { "command": "npx", "args": ["-y", "@albertomarturelo/nemo-mcp"] }
+    }
+  }
+  ```
+
+- **Claude Code** — conecta el mismo MCP
+  (`claude mcp add nemo -- npx -y @albertomarturelo/nemo-mcp`), y/o deja que
+  Claude Code use la CLI directamente por Bash.
 
 La contraseña nunca llega al LLM ni a disco. En la CLI se escribe en un prompt
 oculto (`nemo auth login`), o con `--browser` en la página de Vector. En el MCP,

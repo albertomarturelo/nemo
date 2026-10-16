@@ -14,7 +14,7 @@ import {
   toolText,
 } from './test-helpers.js';
 
-describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => {
+describe('@albertomarturelo/nemo-mcp server (in-memory client, fake runtime, no network)', () => {
   it('exposes the tools — and NO tool takes a credential', async () => {
     const client = await connect(makeRuntime());
     const { tools } = await client.listTools();

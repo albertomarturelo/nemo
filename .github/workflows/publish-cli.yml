@@ -2,10 +2,10 @@ name: Publish CLI
 
 # CD for the public npm package @albertomarturelo/nemo-cli, triggered by a
 # `cli-v*` git tag (ADR-015). Release tags are package-prefixed — `core-v*`
-# publishes the library, `cli-v*` publishes this CLI — because the two packages
-# version independently (no lockstep, ADR-014). `NPM_TOKEN` lives in the
-# `npm-publish` GitHub Environment whose deployment tag policy must list BOTH
-# prefixes; a run triggered from any other ref cannot read it. `pnpm publish` is
+# publishes the library, `cli-v*` this CLI, `mcp-v*` the MCP server — because the
+# packages version independently (no lockstep, ADR-014). `NPM_TOKEN` lives in the
+# `npm-publish` GitHub Environment whose deployment tag policy must list EVERY
+# prefix; a run triggered from any other ref cannot read it. `pnpm publish` is
 # idempotent — an already-published version is skipped, not an error.
 
 on:
