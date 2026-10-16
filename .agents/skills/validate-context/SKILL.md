@@ -37,7 +37,7 @@ concrete fix for each ✗. Read-only: do not change files unless the user asks.
    `.claude/skills` is a symlink to it (`test -L .claude/skills`); no
    `.claude/commands/`. Each `SKILL.md` has `name` (= folder), `description`, and
    `metadata.token-budget`. The manual-only rituals (`session-start`,
-   `session-close`, `issue-new`, `issue-start`) have
+   `session-close`, `issue-new`, `issue-start`, `release`) have
    `disable-model-invocation: true` AND `agents/openai.yaml` with
    `allow_implicit_invocation: false`. Every skill named in `CLAUDE.md` /
    `README.md` exists; no skill cites an ADR that doesn't exist.
