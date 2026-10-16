@@ -105,20 +105,29 @@ without a yes in THIS conversation.
    gh api repos/albertomarturelo/nemo/environments/npm-publish/deployment-branch-policies --jq '.branch_policies[].name'
    ```
 
-2. **Core first.** Tag the squash commit on `main`:
+   If the prefix is missing, stop. The publish job would start and then fail to
+   read `NPM_TOKEN`. Ask the user to add it in the UI.
+
+2. **Core first.** Tag the release PR's own merge commit, not whatever `main`
+   points to now: a later merge must not ride into the release.
 
    ```bash
    git switch main && git pull --ff-only
-   git tag core-v<x> && git push origin core-v<x>
-   gh run watch "$(gh run list --workflow publish-core.yml --limit 1 --json databaseId --jq '.[0].databaseId')"
+   SHA=$(gh pr view <release-pr> --json mergeCommit --jq .mergeCommit.oid)
+   git tag core-v<x> "$SHA" && git push origin core-v<x>
+   # A tag run reports the tag as its branch. Filter on it, or a freshly pushed tag
+   # whose run is not registered yet makes you watch the PREVIOUS release's run.
+   until RUN=$(gh run list --workflow publish-core.yml --branch core-v<x> --limit 1 \
+     --json databaseId --jq '.[0].databaseId // empty') && [ -n "$RUN" ]; do sleep 5; done
+   gh run watch "$RUN" --exit-status
    npm view @albertomarturelo/nemo-core@<x> version   # retry for a few minutes
    ```
 
    An early 404 is registry lag, not a failure; give it several minutes. A green
    job is not proof. The registry is.
 
-3. **Then the CLI**, only once core is visible: the same commands with `cli-v<y>`,
-   `publish-cli.yml` and `@albertomarturelo/nemo-cli`.
+3. **Then the CLI**, only once core is visible: the same commands, on the same
+   `SHA`, with `cli-v<y>`, `publish-cli.yml` and `@albertomarturelo/nemo-cli`.
 
 4. **Smoke the published CLI:**
    `npx -y @albertomarturelo/nemo-cli@<y> --version` (run it from the scratchpad).
