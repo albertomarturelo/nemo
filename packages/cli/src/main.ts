@@ -2,12 +2,14 @@
 // @albertomarturelo/nemo-cli — entry point. Thin surface over @albertomarturelo/nemo-core tasks (ADR-003): build
 // the command tree against the Node runtime and parse argv. Domain errors map to the
 // documented exit codes; their messages pass through unchanged.
-import { createNodeRuntime } from '@albertomarturelo/nemo-core/node';
+import { PlaywrightBrowserLogin, createNodeRuntime } from '@albertomarturelo/nemo-core/node';
 import { buildProgram } from './program.js';
 import { err, exitCodeFor, isHumanMode, messageOf } from './io.js';
 
 async function main(): Promise<void> {
-  const runtime = createNodeRuntime();
+  // The browser seam backs `auth login --browser` only; `playwright` loads lazily, so
+  // no other command pays for it.
+  const runtime = createNodeRuntime({ browser: new PlaywrightBrowserLogin() });
   await buildProgram(runtime).parseAsync(process.argv);
 }
 

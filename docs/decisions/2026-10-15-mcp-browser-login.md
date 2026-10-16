@@ -41,10 +41,10 @@ crosses our process.
 4. **Surfaces:**
    - The MCP gains `auth_login`, with an EMPTY input schema. It can block for up
      to the 5-minute budget while the user signs in.
-   - **The CLI is unchanged.** `nemo auth login` keeps the hidden prompt, and
-     `login` (password-taking) stays CLI-only in `@albertomarturelo/nemo-core/cli`.
-     A terminal user already has a safe input; the browser solves the MCP's
-     problem, not the CLI's.
+   - **The CLI keeps the hidden prompt as its default** and gains the browser as
+     an opt-in: `nemo auth login --browser` calls the same `browserLogin`, and
+     rejects `--user`, since the email is typed on Vector's page too. `login`
+     (password-taking) stays CLI-only in `@albertomarturelo/nemo-core/cli`.
    - Both CI guards (no `/cli` import from MCP, no `password`/`clave` input field)
      are unchanged.
 5. **Browser binary:** Playwright's Chromium first, then an installed Chrome
@@ -53,7 +53,9 @@ crosses our process.
 6. **Packaging:**
    - `playwright` is an OPTIONAL peer of core (`peerDependenciesMeta`), mirroring
      `sii` ADR-016.
-   - It is a direct dependency of `@nemo/mcp` only; the CLI does not install it.
+   - It is a direct dependency of `@nemo/mcp` and `@albertomarturelo/nemo-cli`.
+     Both composition roots wire `PlaywrightBrowserLogin`, and the lazy import
+     means only a browser sign-in loads it.
    - Core keeps zero runtime dependencies.
 
 ## Alternatives Considered
@@ -65,7 +67,10 @@ crosses our process.
 3. **Our own local login page served by the MCP.** Rejected: the password would
    cross our process, and it trains users to type their broker password into a
    page that is not the broker's.
-4. **Read the token from the browser instead of the response.** Rejected for now:
+4. **Make the browser the CLI default** (as `sii` does). Rejected by the
+   maintainer: the terminal prompt is already safe and needs no browser; the
+   browser stays an opt-in there.
+5. **Read the token from the browser instead of the response.** Rejected for now:
    it is not in local/session storage. An httpOnly `access_token` cookie exists,
    but whether it equals the bearer is unobserved. The response is the documented
    contract.
@@ -74,7 +79,8 @@ crosses our process.
 
 - Easier:
   - Claude Desktop can recover a session by itself.
-  - On the MCP path the password never enters any nemo process.
+  - On the browser path (MCP, or CLI `--browser`) the password never enters any
+    nemo process.
 - Harder / risks:
   - A 5-minute blocking tool call may exceed some MCP clients' timeout; validate
     in Claude Desktop before release.

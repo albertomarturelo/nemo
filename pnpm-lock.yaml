@@ -35,6 +35,9 @@ importers:
       commander:
         specifier: ^12.1.0
         version: 12.1.0
+      playwright:
+        specifier: ^1.64.1
+        version: 1.64.1
 
   packages/core:
     devDependencies:

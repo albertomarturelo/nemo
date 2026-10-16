@@ -2,9 +2,10 @@ import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { testing } from '@albertomarturelo/nemo-core';
 import { buildProgram } from './program.js';
+import { exitCodeFor } from './io.js';
 import { captureStdout, scriptedPrompters } from './test-helpers.js';
 
-const { FakeHttpClient, MemoryTokenStore, fakeRuntime } = testing;
+const { FakeBrowserLogin, FakeHttpClient, MemoryTokenStore, fakeRuntime } = testing;
 
 /** A token that never expires (year 2100), so reads don't trigger a refresh. */
 const FRESH = (() => {
@@ -129,6 +130,44 @@ describe('nemo CLI', () => {
     );
     expect(JSON.parse(cap.text())).toEqual({ authenticated: true, username: 'me@mail.cl' });
     expect(await tokens.get()).toBe('minted');
+  });
+
+  it('auth login --browser → signs in through the browser seam, never prompts', async () => {
+    const browser = new FakeBrowserLogin(FRESH);
+    const tokens = new MemoryTokenStore();
+    const rt = fakeRuntime({ browser, tokens });
+    const noPrompt = (): Promise<string> => Promise.reject(new Error('prompted'));
+    cap = captureStdout();
+    await run(rt, ['auth', 'login', '--browser'], { line: noPrompt, hidden: noPrompt });
+    expect(JSON.parse(cap.text())).toEqual({ authenticated: true, reason: 'signed_in' });
+    expect(await tokens.get()).toBe(FRESH);
+    expect(browser.calls).toHaveLength(1);
+  });
+
+  it('auth login --browser --human → no window over an active session', async () => {
+    const browser = new FakeBrowserLogin('unused');
+    const rt = fakeRuntime({ browser, tokens: new MemoryTokenStore(FRESH) });
+    cap = captureStdout();
+    await run(rt, ['auth', 'login', '--browser', '--human']);
+    expect(cap.text()).toContain('Already signed in');
+    expect(browser.calls).toHaveLength(0);
+  });
+
+  it('auth login --browser → an abandoned sign-in is a LoginFailedError (exit 3)', async () => {
+    const tokens = new MemoryTokenStore();
+    const rt = fakeRuntime({ browser: new FakeBrowserLogin(null), tokens });
+    const error: unknown = await run(rt, ['auth', 'login', '--browser']).catch((e: unknown) => e);
+    expect(exitCodeFor(error)).toBe(3);
+    expect(await tokens.get()).toBeNull();
+  });
+
+  it('auth login --browser --user → rejected before any browser opens', async () => {
+    const browser = new FakeBrowserLogin(FRESH);
+    const rt = fakeRuntime({ browser });
+    await expect(run(rt, ['auth', 'login', '--browser', '--user', 'me@mail.cl'])).rejects.toThrow(
+      /drop --user/,
+    );
+    expect(browser.calls).toHaveLength(0);
   });
 
   it('cartera movements → classified JSON envelope from the (faked) portal', async () => {

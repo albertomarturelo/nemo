@@ -6,7 +6,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { buildServer } from './server.js';
 
 async function main(): Promise<void> {
-  // Only the MCP wires browser sign-in (ADR `mcp-browser-login`); the CLI never does.
+  // The MCP's only sign-in is the browser (ADR `mcp-browser-login`).
   const server = buildServer(createNodeRuntime({ browser: new PlaywrightBrowserLogin() }));
   await server.connect(new StdioServerTransport());
 }

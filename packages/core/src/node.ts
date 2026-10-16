@@ -10,8 +10,9 @@ import {
 } from './adapters/node/index.js';
 import type { Runtime } from './seams/index.js';
 
-// Browser sign-in default (lazy `playwright`), wired explicitly by the MCP server
-// only — `createNodeRuntime` leaves `browser` unset, so the CLI never gets one.
+// Browser sign-in default (lazy `playwright`). `createNodeRuntime` leaves `browser`
+// unset; each surface's composition root wires it explicitly (MCP `auth_login`,
+// CLI `auth login --browser`), so an embedder never gets a browser by accident.
 export { PlaywrightBrowserLogin } from './adapters/node/browser-login.js';
 
 export {
