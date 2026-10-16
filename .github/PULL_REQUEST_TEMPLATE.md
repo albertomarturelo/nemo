@@ -33,7 +33,7 @@ Closes #<!-- N -->
 <!-- List the ADRs this PR depends on, supersedes, or amends. If you introduced a
      new decision, link the new ADR file. If none, write "none". -->
 
-- ADR-NNN
+- ADR-NNN / ADR `<slug>`
 
 ## Test plan
 

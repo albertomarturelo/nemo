@@ -1,8 +1,13 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) — and any agent reading `AGENTS.md`, a symlink to it — when working with code in this repository.
 
-<!-- Keep this file an INDEX, not an encyclopedia. Target ≤150 lines; move prose to a docs/*.md and @reference it. -->
+<!--
+Keep this file an INDEX, not an encyclopedia (≤150 lines). Plain markdown LINKS,
+never `@path` imports: in Claude Code `@path` is an EAGER import that injects the
+whole file every session. Links are lazy — follow them when the work needs them.
+AGENTS.md is a symlink to this file; keep it a symlink, a copy drifts.
+-->
 
 ## What This Project Does
 
@@ -23,37 +28,27 @@ hard-won Vector wire knowledge and guardrails are **ported**, the code is not.
 ## Methodology
 
 This repo runs under **Context-First Development (CFD)**: decisions-before-code
-(ADRs), a context layer each session reads first, and skills in `.claude/skills/`
-(`/start-session`, `/close-session`, `/status`, `/new-decision`, `/issue-new`,
-`/issue-start`, `/review-pr`, `/validate-context`). The methodology essay is in
-`context-first-development.md`; the binding application is ADR-001. Read the essay
-once if new; do not re-read it every session.
+(ADRs), a context layer each session reads first, and Agent Skills in
+`.agents/skills/` (`.claude/skills` is a symlink): `/session-start`,
+`/session-close`, `/issue-new`, `/issue-start` (manual-only rituals), plus
+`/new-decision`, `/review-pr`, `/validate-context`, `/status`. The essay lives
+upstream at
+[context-first-development](https://github.com/albertomarturelo/context-first-development/blob/main/context-first-development.md);
+the binding application is ADR-001 as amended by ADR
+`adopt-cfd-upstream-revisions`. Read the essay once if new, not every session.
+A `SessionStart` hook injects `docs/CURRENT_STATUS.md` (gitignored, per-clone)
+and the ADR index.
 
-## Architecture
+## Context Map (read on demand, not upfront)
 
-@docs/ARCHITECTURE.md
-
-## Tech Stack
-
-@docs/STACK.md
-
-## Conventions
-
-@docs/CONVENTIONS.md
-
-## Roadmap
-
-@docs/ROADMAP.md
-
-## Key Decisions
-
-@docs/decisions/_index.md
-
-## Current Status
-
-Tracked locally only — `docs/CURRENT_STATUS.md` is gitignored, so each clone keeps
-its own working notes. Not loaded automatically; the `start-session` / `status`
-skills read it from disk, and `close-session` updates it before the end.
+- Architecture, module map, data flow: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Tech stack + pinned versions: [docs/STACK.md](docs/STACK.md)
+- Conventions: [docs/CONVENTIONS.md](docs/CONVENTIONS.md) — read it before the
+  first edit of a session, not at session start.
+- Roadmap (surface checklist): [docs/ROADMAP.md](docs/ROADMAP.md)
+- Decisions index: [docs/decisions/_index.md](docs/decisions/_index.md)
+- Vector wire contracts: [docs/vector-contract/](docs/vector-contract/)
+- Local working state: `docs/CURRENT_STATUS.md` (gitignored)
 
 ## Build & Run
 
@@ -96,8 +91,9 @@ skills read it from disk, and `close-session` updates it before the end.
   `register<Mod>` (CLI) + `register<Mod>Tools` (MCP), each wired by ONE appended
   line. `instruments` is the template (ADR-007).
 - **Decisions get an ADR BEFORE implementation.** Run `/new-decision` first
-  (ADR-001). Corrections become conventions — fix the pattern and write it into
-  `docs/CONVENTIONS.md` in the same change.
+  (ADR-001). New ADRs are `docs/decisions/YYYY-MM-DD-<slug>.md`, cited by slug;
+  never a new sequence number. Corrections become conventions — fix the pattern
+  and write it into `docs/CONVENTIONS.md` in the same change.
 - **This repo is PUBLIC and permanent — nothing sensitive in any PR/commit
   (ADR-012).** Never commit `.env`, anything under `.nemo/`, a real bearer
   token/JWT, or real account PII (email, RUT, holdings, amounts). Tests + docs use
@@ -106,7 +102,9 @@ skills read it from disk, and `close-session` updates it before the end.
 - **Absolute rule — no AI attribution anywhere** (commits, PRs, issues, branches,
   code, docs). Authorship is the human owner.
 
-<!--
-Slash-equivalent skills live in .claude/skills/ — run /start-session at the start
-of a session and /close-session before ending one.
--->
+## When Context and Code Disagree
+
+Code is the truth about WHAT the system does; ADRs are the truth about WHY;
+`docs/` describes both and can go stale. If a doc contradicts the code, STOP and
+flag the conflict — do not silently trust the doc, and do not "fix" correct code
+to match a stale doc.

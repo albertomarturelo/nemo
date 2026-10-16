@@ -54,8 +54,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: ADR index integrity
-        # Every docs/decisions/NNN-*.md must be listed in _index.md, and every
-        # link from _index.md must point to a real file.
+        # Every docs/decisions ADR — numbered NNN-*.md (legacy) or YYYY-MM-DD-<slug>.md —
+        # must be listed in _index.md, and every relative link in _index.md must point
+        # to a real file.
         run: |
           set -euo pipefail
           fail=0
@@ -67,12 +68,32 @@ jobs:
             fi
           done
           while IFS= read -r ref; do
-            if [ -n "$ref" ] && [ ! -f "$ref" ]; then
+            if [ -n "$ref" ] && [ ! -f "docs/decisions/$ref" ]; then
               echo "::error file=docs/decisions/_index.md::Index links to missing file: $ref"
               fail=1
             fi
-          done < <(grep -oE 'docs/decisions/[0-9]+-[a-zA-Z0-9-]+\.md' docs/decisions/_index.md | sort -u)
+          done < <(grep -oE '\]\([0-9][a-zA-Z0-9-]*\.md\)' docs/decisions/_index.md | sed -E 's/^\]\(//; s/\)$//' | sort -u)
           exit $fail
+
+      - name: ADR IDs — unique slugs, no new numbers (ADR adopt-cfd-upstream-revisions)
+        # The slug is a date-prefixed ADR's identity. Two branches deciding the same
+        # thing in parallel can both land one; reconcile them into one or supersede.
+        # Numbered ADRs stop at 015; a new NNN-*.md re-opens the counter race.
+        run: |
+          set -euo pipefail
+          late=$(ls docs/decisions | grep -E '^[0-9]{3}-.+\.md$' | awk -F- '$1+0 > 15' || true)
+          if [ -n "$late" ]; then
+            echo "::error::New numbered ADR(s): $late. Name new ADRs docs/decisions/YYYY-MM-DD-<slug>.md."
+            exit 1
+          fi
+          dupes=$(ls docs/decisions \
+            | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}-.+\.md$' \
+            | sed -E 's/^[0-9]{4}-[0-9]{2}-[0-9]{2}-//' \
+            | sort | uniq -d || true)
+          if [ -n "$dupes" ]; then
+            echo "::error::Duplicate ADR slugs: $dupes. Reconcile them into one ADR or supersede one."
+            exit 1
+          fi
 
       - name: ADR completeness (5 mandatory sections)
         run: |

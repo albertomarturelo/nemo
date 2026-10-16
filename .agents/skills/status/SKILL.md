@@ -1,5 +1,8 @@
 ---
-description: Summarise the current nemo monorepo status by reading docs/CURRENT_STATUS.md and the ADR index. Use when the user asks "where are we", "what is the status", "what is in progress", or for a quick CFD status read.
+name: status
+description: "Summarise the current nemo monorepo status by reading docs/CURRENT_STATUS.md and the ROADMAP. Use when the user asks \"where are we\", \"what is the status\", \"what is in progress\", or for a quick CFD status read."
+metadata:
+  token-budget: "~500–1,000"
 ---
 
 A lightweight "where are we" — no full session-start ritual, no source scan.

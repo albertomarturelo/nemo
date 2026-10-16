@@ -7,7 +7,7 @@ labels: []
 
 <!-- Fixed 6-section body. `/issue-start` parses by section header — do NOT rename
      or reorder. If a section truly does not apply (e.g. Reproduction on a
-     feature), remove ONLY that section. See .claude/skills/issue-new. -->
+     feature), remove ONLY that section. See .agents/skills/issue-new. -->
 
 ## Context
 
@@ -16,17 +16,19 @@ labels: []
 ## Target
 
 - Files / dirs: <!-- concrete paths across packages; mark `new file` if net-new
-     (e.g. `packages/core/src/tasks/portfolio.ts — new file`) -->
+     (e.g. `packages/core/src/tasks/<mod>.ts — new file`); list existing files
+     that will be modified too (`program.ts`, `server.ts`) -->
 - Pattern to mirror: <!-- the existing module to copy in shape/naming (instruments) -->
 
 ## ADRs to load
 
-<!-- ADR numbers the agent must read before starting — at minimum the
+<!-- ADRs the agent must read before starting (numbered, or by slug for newer ones) — at minimum the
      architectural ones the change touches (ADR-003 boundary/seams, ADR-004 Vector
      contract, ADR-005 auth, ADR-006 credentials, ADR-007 append-only). If a needed
      decision isn't an ADR yet, STOP and run /new-decision first. -->
 
-- [ADR-NNN](docs/decisions/NNN-*.md)
+- [ADR-NNN](docs/decisions/NNN-<slug>.md)
+- [<slug>](docs/decisions/YYYY-MM-DD-<slug>.md)
 
 ## Acceptance criteria
 

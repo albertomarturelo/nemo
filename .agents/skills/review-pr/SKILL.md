@@ -1,5 +1,9 @@
 ---
-description: Review a nemo Pull Request against the project's curated checklist — sourced from the ADRs, CONVENTIONS.md, and any linked issue's acceptance criteria — instead of re-discovering intent from code. Use when the user asks to "review PR", "review this branch", "check my PR", or passes a PR number. Implements CFD (ADR-001).
+name: review-pr
+description: "Review a nemo PR — or the local branch diff before /session-close — against the curated checklist sourced from the ADRs, CONVENTIONS.md, the linked issue's acceptance criteria, and the PR template, instead of re-discovering intent from code. Report findings; do not auto-fix. Use when asked to review a PR, review this branch, or self-review before closing."
+argument-hint: "[pr-number]"
+metadata:
+  token-budget: "~3,000–15,000, scales with the diff"
 ---
 
 Review a PR against the project's context (ADR-001), not by re-discovering its intent
@@ -14,15 +18,30 @@ The user passes a PR number. If not, infer from the current branch:
 gh pr status --json number --jq '.currentBranch.number'
 ```
 
-If still none, ask.
+If the branch has no PR yet, this is a **self-review before `/session-close`**:
+review the local branch (local mode below). The close ritual commits and the PR
+opens afterwards.
 
 ## 2. Fetch metadata + diff + commit story
+
+PR mode:
 
 ```bash
 gh pr view <n> --json baseRefName,headRefName,title,body,labels,commits,closingIssuesReferences
 gh pr diff <n>
 git log <base>..<head> --pretty=format:%s
 ```
+
+Local mode (no PR yet):
+
+```bash
+git diff main...HEAD      # committed on the branch
+git diff HEAD             # not yet committed
+git log main..HEAD --pretty=format:%s
+```
+
+Take the issue from the `#N` under "In Progress" in `docs/CURRENT_STATUS.md`. Skip
+the PR-body / PR-template items; they apply once the PR exists.
 
 ## 3. Load the agenda
 
@@ -93,6 +112,9 @@ PR body's "no sensitive data" checkbox is genuinely satisfied, not just ticked.
 ### Decisions & docs drift
 
 - Any new significant decision has an ADR in this PR (ADR-001); `_index.md` updated.
+  New ADRs are `YYYY-MM-DD-<slug>.md` with a unique slug — no new `NNN-` file, no
+  renamed numbered ADR (ADR `adopt-cfd-upstream-revisions`).
+- Touched an ADR-described pattern? Its Consequences still hold.
 - A clarified convention is captured in `CONVENTIONS.md`.
 - `docs/` updates ship in the same commit as the code that motivated them.
 - Each acceptance-criteria `[ ]` from the linked issue is implemented; no
@@ -112,10 +134,13 @@ PR body's "no sensitive data" checkbox is genuinely satisfied, not just ticked.
 
 ## Summary
 - Overall assessment, AC coverage X/Y, architecture compliance ✓/⚠/✗.
+- Tokens consumed: ~<n>k.
 ```
 
 ## Rules
 
-- **Do NOT auto-fix.** Report only; the author fixes next session.
+- **Do NOT auto-fix.** Report only. In a self-review the findings are fixed in the
+  same session, before `/session-close`, while the context is loaded; after a PR
+  review they become the next session's focus.
 - If the checklist needs a rule not yet in an ADR or `CONVENTIONS.md`, surface it as
   a finding and propose `new-decision` — do not silently invent it.

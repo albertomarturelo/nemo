@@ -180,3 +180,26 @@ ADR-016). It starts with the load-bearing rules ported from the proven Python
   no `🤖`, in any artifact that lands in git or on GitHub. Authorship is the
   human owner (ADR-022 lineage from nemo-cli).
 - `docs/` updates ship in the SAME commit as the code that motivated them.
+
+## Sessions & decisions (CFD)
+
+Upstream CFD revisions adopted by ADR `adopt-cfd-upstream-revisions`.
+
+- **Cite ADRs by their ID as it appears in the index.** Numbered ones stay
+  `ADR-007`; date-prefixed ones are cited by slug (`ADR <slug>`). Never assign a
+  new sequence number, and never rename a numbered ADR.
+- **Restart the session on context signals, not the clock.** First on drift (a
+  rejected pattern comes back, an invented convention, losing track of the AC item,
+  a mis-cited ADR) — immediately. Then on context fill (long test runs, wide diffs,
+  log dumps, auto-compaction) — at the next AC-item boundary. Only when neither
+  signal is available, use the clock: soft ~1 h, hard ~2 h. `/session-close` +
+  `/session-start` costs ~1.5–3k tokens; drift costs more.
+- **Solo self-review comes before close.** Run `/review-pr` on the local diff,
+  fix its findings in the same session, THEN `/session-close`, commit, and open
+  the PR.
+- **One loop by default, the human as orchestrator.** No agent's output feeds
+  another agent without a human checkpoint. Parallel loops (one issue, one agent,
+  one git worktree each) only with disjoint `Target` paths, every needed ADR
+  already merged on `main`, and serial merges with `/review-pr` re-run on the
+  rebased branch. A decision surfacing mid-loop lands on `main` as its own PR
+  first.

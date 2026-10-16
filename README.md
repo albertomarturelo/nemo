@@ -110,10 +110,12 @@ Requiere Node `>=20` y el pnpm fijado en `packageManager`. Un solo test:
 
 El repo corre bajo **Context-First Development (CFD)**: decisiones-antes-de-código
 (ADRs), una capa de contexto en [`docs/`](docs/) que cada sesión lee primero, y
-skills en `.claude/skills/` (`/start-session`, `/close-session`, `/new-decision`,
-`/issue-new`, `/issue-start`, `/review-pr`, `/validate-context`, `/status`). Al
-emparejar con un agente, empieza por [`CLAUDE.md`](CLAUDE.md). Ver
-[ADR-001](docs/decisions/001-adopt-cfd-methodology.md).
+Agent Skills en `.agents/skills/` (`/session-start`, `/session-close`,
+`/new-decision`, `/issue-new`, `/issue-start`, `/review-pr`, `/validate-context`,
+`/status`). Al emparejar con un agente, empieza por [`CLAUDE.md`](CLAUDE.md)
+(`AGENTS.md` apunta al mismo archivo). Ver
+[ADR-001](docs/decisions/001-adopt-cfd-methodology.md) y la
+[metodología](https://github.com/albertomarturelo/context-first-development).
 
 ## Seguridad
 

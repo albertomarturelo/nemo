@@ -3,7 +3,9 @@
 ## Status
 
 Accepted — 2026-07-03. Lineage: ported wholesale from the Python `nemo-cli`
-(its process ADRs 013–024) and the `sii` TypeScript project.
+(its process ADRs 013–024) and the `sii` TypeScript project. Amended by
+[`adopt-cfd-upstream-revisions`](2026-10-15-adopt-cfd-upstream-revisions.md)
+(skill location/names/invocation, `CLAUDE.md` links, ADR IDs, hooks).
 
 ## Context
 
