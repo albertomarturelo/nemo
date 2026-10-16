@@ -1,13 +1,15 @@
 // The `nemo` MCP stdio server (ADR-003): every Resource/Tool is a thin call into a
 // @albertomarturelo/nemo-core task — it never reaches past the task layer. The password NEVER
-// crosses this boundary: there is NO sign-in tool. Signing in takes credentials, so
-// it is CLI-only (`nemo auth login`); the MCP surface offers status, logout, and read
-// tools over an already-established session (ADR-006).
+// crosses this boundary (ADR-006): `auth_login` takes NO arguments and delegates to a
+// headed browser where the user types the password into Vector's own page; only the
+// bearer token comes back (ADR `mcp-browser-login`). The password-taking `login`
+// stays in the CLI-only `@albertomarturelo/nemo-core/cli` subpath, never imported here.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   API_BASE_URL,
   ENDPOINTS,
   authStatus,
+  browserLogin,
   logout,
   type Runtime,
 } from '@albertomarturelo/nemo-core';
@@ -49,13 +51,35 @@ export function buildServer(runtime: Runtime): McpServer {
   );
 
   // --- Tools: actions, each a thin call into a @albertomarturelo/nemo-core task ---
+  // auth_login blocks while the user signs in (up to BROWSER_LOGIN_TIMEOUT_MS). It
+  // declares NO input schema: there is nothing a caller could pass a password in.
+  server.registerTool(
+    'auth_login',
+    {
+      title: 'Sign in (browser)',
+      description:
+        "Opens a browser window at Vector Capital's own sign-in page; the USER types their " +
+        'credentials there. Never takes a password or username. Waits until sign-in completes ' +
+        '(up to 5 minutes), then caches only the session token. Idempotent: does nothing when ' +
+        'a session is already active.',
+      annotations: { readOnlyHint: false, openWorldHint: true },
+    },
+    () =>
+      toolText(async () => {
+        const r = await browserLogin(runtime);
+        return r.reason === 'already_authenticated'
+          ? 'Already signed in — the session is active.'
+          : 'Signed in. The session token is cached.';
+      }),
+  );
+
   server.registerTool(
     'auth_status',
     {
       title: 'Session status',
       description:
         'LOCAL read of the session (authenticated + coarse state). Never touches the network. ' +
-        'There is NO sign-in tool — sign in with the CLI `nemo auth login` (ADR-006).',
+        'When logged out or expired, call auth_login.',
       annotations: { readOnlyHint: true },
     },
     () => toolJson(() => authStatus(runtime)),

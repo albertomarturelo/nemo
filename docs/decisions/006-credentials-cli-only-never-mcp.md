@@ -3,7 +3,9 @@
 ## Status
 
 Accepted — 2026-07-03. Ported from the Python `nemo-cli` (ADR-025 interactive
-login, credentials never on disk) and the `sii` project's ADR-006 posture.
+login, credentials never on disk) and the `sii` project's ADR-006 posture. Amended
+by [`mcp-browser-login`](2026-10-15-mcp-browser-login.md): the MCP gains a
+credential-free `auth_login` (browser), and Alternative 3 below is reversed.
 
 ## Context
 

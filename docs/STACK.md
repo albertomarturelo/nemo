@@ -20,7 +20,7 @@
 
 - **`@modelcontextprotocol/sdk`** `^1.29` — MCP server SDK (TypeScript), stdio
   transport. The stdio server is what Claude Code and Claude Desktop both connect
-  to. Exposes Resources (session/config) and Tools (status, logout, reads).
+  to. Exposes Resources (session/config) and Tools (browser login, status, logout, reads).
   Lives in `@nemo/mcp` only.
 - **`zod`** `^3.25` — MCP tool input-schema validation. The SDK's `registerTool`
   takes a zod shape and emits the protocol JSON Schema. Pinned to satisfy the
@@ -30,6 +30,12 @@
   subcommands (`nemo auth login`, `nemo instruments local`). Lives in `@albertomarturelo/nemo-cli`
   only; `@albertomarturelo/nemo-core` never imports it. The hidden password prompt uses
   Node's built-in `readline` — no dependency.
+- **`playwright`** `^1.64` — the headed browser behind MCP browser sign-in
+  (`PlaywrightBrowserLogin`, ADR `mcp-browser-login`). An OPTIONAL peer of
+  `@albertomarturelo/nemo-core`, imported lazily by the `./node` adapter only. It
+  is a direct dependency of `@nemo/mcp`, and `@albertomarturelo/nemo-cli` never
+  installs it. The browser binary is Playwright's Chromium
+  (`npx playwright install chromium`), falling back to an installed Chrome.
 
 `@albertomarturelo/nemo-core` itself has **zero runtime dependencies**: it uses the Node
 standard library (`fetch`, `node:fs`, `node:os`, `node:path`, `Buffer`) behind

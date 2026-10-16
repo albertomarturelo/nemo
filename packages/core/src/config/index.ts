@@ -6,7 +6,17 @@
 // (the client portal's own web UI) — see docs/vector-contract/*.md for the
 // per-endpoint request/response shapes and observation dates.
 
-export const API_BASE_URL = 'https://portalclientes.vectorcapital.cl/api';
+export const PORTAL_URL = 'https://portalclientes.vectorcapital.cl';
+
+export const API_BASE_URL = `${PORTAL_URL}/api`;
+
+/** The SPA's own sign-in route — where the headed browser login opens. Observed
+ *  2026-10-15 (`/` routes here; docs/vector-contract/auth.md § Web login). */
+export const WEB_SIGN_IN_PATH = '/sign-in';
+
+/** How long the MCP browser sign-in waits for the user to finish typing into
+ *  Vector's page before giving up (ADR `mcp-browser-login`). */
+export const BROWSER_LOGIN_TIMEOUT_MS = 5 * 60_000;
 
 /** Every portal path the core reaches. A caller passes the explicit sub-prefix;
  *  `/publicapi` = auth, `/shared` = local instruments, `/frontoffice` = the rest. */

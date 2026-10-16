@@ -48,10 +48,12 @@ ADR-016). It starts with the load-bearing rules ported from the proven Python
   there are no stored credentials (ADR-005 / ADR-006).
 - **Authentication is an explicit verb, not a side-effect.** Domain tasks never
   mint a session; they consume a cached token via `request()` or raise
-  `NotAuthenticatedError`. Only `login` mints (and it is CLI-only).
+  `NotAuthenticatedError`. Only the sign-in tasks mint: `login` (CLI-only) and
+  the credential-free `browserLogin` (ADR `mcp-browser-login`).
 - **The password never enters the main barrel.** `login` (credential-taking) is
   exported ONLY from `@albertomarturelo/nemo-core/cli`. The MCP server imports the main
-  barrel, so it physically cannot wire a sign-in tool. CI greps for both the
+  barrel, so it physically cannot wire a credential-taking task; its only sign-in
+  is `browserLogin`, which takes no input at all. CI greps for both the
   subpath import in `packages/mcp` and any `password`/`clave` MCP input field
   (ADR-006).
 - **Validate MCP tool inputs with `zod` at the boundary (ADR-011).** The SDK

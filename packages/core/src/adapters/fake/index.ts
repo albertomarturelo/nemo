@@ -1,9 +1,12 @@
 // In-memory fakes for the four seams. Exported from the main barrel as `testing`
 // (`import { testing } from '@albertomarturelo/nemo-core'`) so surface + integration tests
 // build a Runtime that never touches the network, the filesystem, or the clock.
+import { LoginFailedError } from '../../errors/index.js';
 import type {
   AuditEntry,
   AuditSink,
+  BrowserLogin,
+  BrowserSignInOptions,
   Clock,
   HttpClient,
   HttpRequest,
@@ -81,6 +84,20 @@ export class MemoryAuditSink implements AuditSink {
   write(entry: AuditEntry): Promise<void> {
     this.entries.push(entry);
     return Promise.resolve();
+  }
+}
+
+/** Fake browser sign-in: returns a canned token, or rejects with `fail` (a timeout /
+ *  closed window by default). Records each call's options for assertions. */
+export class FakeBrowserLogin implements BrowserLogin {
+  readonly calls: BrowserSignInOptions[] = [];
+  constructor(
+    private readonly token: string | null,
+    private readonly fail: Error = new LoginFailedError('Sign-in not completed (fake).'),
+  ) {}
+  signIn(options: BrowserSignInOptions): Promise<string> {
+    this.calls.push(options);
+    return this.token === null ? Promise.reject(this.fail) : Promise.resolve(this.token);
   }
 }
 

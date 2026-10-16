@@ -22,15 +22,20 @@ export async function signIn(rt: Runtime, username: string, password: string): P
       `SignIn failed (${res.status} ${res.statusText}): ${await res.text()}`,
     );
   }
-  const payload: unknown = await res.json();
-  if (typeof payload !== 'object' || payload === null) {
-    throw new LoginFailedError('SignIn response was not a JSON object.');
-  }
-  const token = (payload as Record<string, unknown>).token;
-  if (typeof token !== 'string' || !token) {
+  const token = tokenFromSignIn(await res.json());
+  if (token === null) {
     throw new LoginFailedError("SignIn response missing top-level 'token' string.");
   }
   return token;
+}
+
+/** Pick the bearer out of a SignIn response body — and nothing else. The body also
+ *  carries `user` (PII) and `systemConfig` (docs/vector-contract/auth.md); both are
+ *  left untouched. Null when there is no non-empty top-level `token` string. */
+export function tokenFromSignIn(payload: unknown): string | null {
+  if (typeof payload !== 'object' || payload === null) return null;
+  const token = (payload as Record<string, unknown>).token;
+  return typeof token === 'string' && token ? token : null;
 }
 
 /** Trade an existing bearer token for a freshly minted one. The response body is a

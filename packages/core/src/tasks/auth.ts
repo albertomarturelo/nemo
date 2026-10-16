@@ -1,8 +1,9 @@
-// Auth tasks. `authStatus` and `logout` are exported from the MAIN barrel (safe for
-// both surfaces). `login` takes a password, so it is exported ONLY from the CLI-only
+// Auth tasks. `authStatus`, `logout` and `browserLogin` are exported from the MAIN
+// barrel (safe for both surfaces — none takes a credential). `login` takes a password, so it is exported ONLY from the CLI-only
 // subpath `@albertomarturelo/nemo-core/cli` (see ../cli.ts) — the MCP server imports the
 // main barrel and must never be able to wire a task that takes credentials (ADR-006).
-import { PROACTIVE_REFRESH_SECONDS } from '../config/index.js';
+import { BROWSER_LOGIN_TIMEOUT_MS, PROACTIVE_REFRESH_SECONDS } from '../config/index.js';
+import { LoginFailedError } from '../errors/index.js';
 import { isExpiringWithin } from '../auth/jwt.js';
 import { signIn } from '../auth/service.js';
 import { audited } from '../audit/index.js';
@@ -65,5 +66,38 @@ export async function login(
       return { authenticated: true as const, username: credentials.username };
     },
     { username: credentials.username },
+  );
+}
+
+export interface BrowserLoginResult {
+  authenticated: true;
+  reason: 'signed_in' | 'already_authenticated';
+}
+
+/** Sign in through Vector's own page in a visible browser (ADR `mcp-browser-login`).
+ *  Takes NO credential — the user types the password into Vector's form and only the
+ *  bearer comes back through the `BrowserLogin` seam — so it is safe on the main
+ *  barrel the MCP imports. Idempotent: a cached token outside the proactive-refresh
+ *  window returns `already_authenticated` without opening a window. */
+export async function browserLogin(rt: Runtime): Promise<BrowserLoginResult> {
+  const cached = await rt.tokens.get();
+  if (cached !== null && !isExpiringWithin(cached, PROACTIVE_REFRESH_SECONDS, rt.clock.now())) {
+    return { authenticated: true, reason: 'already_authenticated' };
+  }
+  const browser = rt.browser;
+  if (!browser) {
+    throw new LoginFailedError(
+      'Browser sign-in is not available here — run `nemo auth login` in a terminal.',
+    );
+  }
+  return audited(
+    rt,
+    'auth.login',
+    async () => {
+      const token = await browser.signIn({ timeoutMs: BROWSER_LOGIN_TIMEOUT_MS });
+      await rt.tokens.set(token);
+      return { authenticated: true as const, reason: 'signed_in' as const };
+    },
+    { method: 'browser' },
   );
 }
