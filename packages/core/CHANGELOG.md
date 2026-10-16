@@ -4,6 +4,18 @@ All notable changes to the core package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `browserLogin` — sign in through Vector's own page in a headed browser and
+  cache only the bearer token; idempotent over an active session. It takes no
+  credential, so it lives on the main barrel (ADR `mcp-browser-login`).
+- `BrowserLogin` seam (optional on `Runtime`), its Node default
+  `PlaywrightBrowserLogin` on `./node` (lazy `playwright`, an optional peer), and
+  `testing.FakeBrowserLogin`.
+- `PORTAL_URL`, `WEB_SIGN_IN_PATH`, `BROWSER_LOGIN_TIMEOUT_MS` in config.
+
 ## [0.2.0] — 2026-07-31
 
 ### Added

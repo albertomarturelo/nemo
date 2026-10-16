@@ -1,6 +1,6 @@
 // Server-level tests: the tool/resource surface + the auth/read tools. Asserts the
-// ADR-006 invariant — NO tool accepts a password, and there is NO sign-in tool at
-// all. Fakes only, no network.
+// ADR-006 invariant — NO tool accepts a password — and that the browser sign-in tool
+// (ADR `mcp-browser-login`) declares no input at all. Fakes only, no network.
 import { describe, expect, it } from 'vitest';
 import { testing } from '@albertomarturelo/nemo-core';
 import {
@@ -14,11 +14,12 @@ import {
 } from './test-helpers.js';
 
 describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => {
-  it('exposes the read tools — and NO credential-taking tool exists', async () => {
+  it('exposes the tools — and NO tool takes a credential', async () => {
     const client = await connect(makeRuntime());
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();
     expect(names).toEqual([
+      'auth_login',
       'auth_logout',
       'auth_status',
       'cartera_movements',
@@ -29,8 +30,9 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
       'instruments_local',
     ]);
 
-    // ADR-006: no sign-in tool, and no tool INPUT FIELD accepts a password.
-    expect(names).not.toContain('auth_login');
+    // ADR-006: no tool INPUT FIELD accepts a password — and auth_login has no fields.
+    const login = tools.find((t) => t.name === 'auth_login');
+    expect(propKeys(login?.inputSchema)).toEqual([]);
     const allInputKeys = tools.flatMap((t) => propKeys(t.inputSchema));
     expect(allInputKeys.some((k) => /password|clave|user/i.test(k))).toBe(false);
   });
@@ -41,6 +43,41 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
     expect(resources.map((r) => r.uri).sort()).toEqual(['nemo://config', 'nemo://session']);
     const cfg = await client.readResource({ uri: 'nemo://config' });
     expect(resourceText(cfg)).toContain('portalclientes.vectorcapital.cl');
+  });
+
+  it('auth_login signs in through the browser seam and caches the token', async () => {
+    const browser = new testing.FakeBrowserLogin(FRESH_TOKEN);
+    const tokens = new testing.MemoryTokenStore();
+    const client = await connect(makeRuntime({ browser, tokens }));
+    const res = await client.callTool({ name: 'auth_login', arguments: {} });
+    expect(isError(res)).toBe(false);
+    expect(toolText(res)).toContain('Signed in');
+    expect(toolText(res)).not.toContain(FRESH_TOKEN);
+    expect(await tokens.get()).toBe(FRESH_TOKEN);
+  });
+
+  it('auth_login is a no-op over an active session', async () => {
+    const browser = new testing.FakeBrowserLogin('unused');
+    const client = await connect(
+      makeRuntime({ browser, tokens: new testing.MemoryTokenStore(FRESH_TOKEN) }),
+    );
+    const res = await client.callTool({ name: 'auth_login', arguments: {} });
+    expect(toolText(res)).toContain('Already signed in');
+    expect(browser.calls).toHaveLength(0);
+  });
+
+  it('auth_login surfaces an abandoned sign-in as an error result', async () => {
+    const client = await connect(makeRuntime({ browser: new testing.FakeBrowserLogin(null) }));
+    const res = await client.callTool({ name: 'auth_login', arguments: {} });
+    expect(isError(res)).toBe(true);
+    expect(toolText(res)).toMatch(/not completed/);
+  });
+
+  it('a read without a session points the model at auth_login', async () => {
+    const client = await connect(makeRuntime());
+    const res = await client.callTool({ name: 'instruments_local', arguments: {} });
+    expect(isError(res)).toBe(true);
+    expect(toolText(res)).toContain('auth_login');
   });
 
   it('auth_status reports logged_out before login', async () => {

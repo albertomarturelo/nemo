@@ -2,7 +2,15 @@
 // `register<Mod>Tools(server, runtime)`; they reuse these so the broker's error
 // messages surface verbatim and JSON results render uniformly across modules.
 
-const messageOf = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+import { NotAuthenticatedError } from '@albertomarturelo/nemo-core';
+
+/** The core's message verbatim (CONVENTIONS). A missing/expired session also names
+ *  the MCP's own remedy, since the core's wording points at the CLI. */
+const messageOf = (e: unknown): string => {
+  if (e instanceof NotAuthenticatedError)
+    return `${e.message} From here: call the auth_login tool.`;
+  return e instanceof Error ? e.message : String(e);
+};
 
 export interface ToolResult {
   // The MCP SDK's tool-callback return type carries a string index signature

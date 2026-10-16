@@ -7,8 +7,14 @@
 // barrel) cannot wire a credential-taking task (ADR-006).
 
 // --- tasks: the public operations ---
-export { authStatus, logout } from './tasks/auth.js';
-export type { AuthState, AuthStatusResult, LogoutResult, LoginResult } from './tasks/auth.js';
+export { authStatus, browserLogin, logout } from './tasks/auth.js';
+export type {
+  AuthState,
+  AuthStatusResult,
+  BrowserLoginResult,
+  LogoutResult,
+  LoginResult,
+} from './tasks/auth.js';
 export {
   instrumentsLocal,
   instrumentPrices,
@@ -55,6 +61,8 @@ export type {
 export type {
   AuditEntry,
   AuditSink,
+  BrowserLogin,
+  BrowserSignInOptions,
   Clock,
   HttpClient,
   HttpRequest,
@@ -64,7 +72,14 @@ export type {
 } from './seams/index.js';
 
 // --- shared primitives + config ---
-export { API_BASE_URL, ENDPOINTS, DEFAULT_LOCAL_SUBCLASSES } from './config/index.js';
+export {
+  API_BASE_URL,
+  BROWSER_LOGIN_TIMEOUT_MS,
+  DEFAULT_LOCAL_SUBCLASSES,
+  ENDPOINTS,
+  PORTAL_URL,
+  WEB_SIGN_IN_PATH,
+} from './config/index.js';
 export * from './errors/index.js';
 
 // --- testing helpers: in-memory fakes for surface / integration tests ---

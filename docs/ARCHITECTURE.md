@@ -41,14 +41,16 @@ nemo/                         # pnpm workspaces, TypeScript project references
 
 - **`@albertomarturelo/nemo-cli`** — the human terminal surface (`nemo …`). Claude Code can also
   invoke it directly through its Bash tool, so the CLI doubles as an AI-usable
-  surface inside Claude Code. It is the ONLY surface that can sign in, because
-  signing in takes a password (ADR-006).
+  surface inside Claude Code. It is the only surface that takes a password, at a
+  hidden prompt (ADR-006).
 - **`@nemo/mcp`** — a stdio MCP server. Both **Claude Desktop** (via
   `claude_desktop_config.json`) and **Claude Code** (via `.mcp.json` / `claude
   mcp add`) consume stdio MCP servers, so this one package makes the same reads
-  available to AI assistants in both clients. It offers `auth_status`,
-  `auth_logout`, and read tools over an **already-established** session — no
-  sign-in tool exists, so the password never reaches the model.
+  available to AI assistants in both clients. It offers `auth_login`,
+  `auth_status`, `auth_logout`, and the read tools. `auth_login` takes no
+  arguments: it opens a headed browser at Vector's own sign-in page, the user
+  types the password there, and only the bearer token comes back. The password
+  never reaches the model or the server (ADR `mcp-browser-login`).
 
 Both surfaces are thin: each command / tool is a call into a `@albertomarturelo/nemo-core`
 task. Neither reaches past the task layer into the session / HTTP internals —
@@ -80,18 +82,18 @@ centralizing the auth-renewal rails — not full hexagonal ceremony (ADR-003).
 | Module | Purpose | Status |
 | --- | --- | --- |
 | `config` | Base URL + endpoint paths + refresh window (single source of truth) | Done |
-| `seams` | `HttpClient` / `TokenStore` / `Clock` / `AuditSink` interfaces + `Runtime` | Done |
+| `seams` | `HttpClient` / `TokenStore` / `Clock` / `AuditSink` interfaces + `Runtime`; optional `BrowserLogin` (wired by the MCP only) | Done |
 | `errors` | `NotAuthenticated` / `SessionExpired` / `LoginFailed` / `ApiError` / `ContractError` | Done |
 | `auth/jwt` | Signature-unverified `exp` peek for proactive renewal | Done |
 | `auth/service` | `signIn` + `refreshToken` bootstrap calls over the HTTP seam | Done |
 | `auth/session` | `request()` — the single authenticated HTTP path (proactive + reactive renew) | Done |
-| `tasks/auth` | `authStatus`, `logout` (barrel) + `login` (CLI-only subpath, ADR-006) | Done |
+| `tasks/auth` | `authStatus`, `logout`, `browserLogin` (barrel) + `login` (CLI-only subpath, ADR-006) | Done |
 | `tasks/instruments` | `instrumentsLocal` — the first read; the template later reads mirror | Done |
 | `tasks/instruments` (prices) | `instrumentPrices` — local daily price history + pure stats/sparkline | Done |
 | `tasks/instruments` (intl) | `instrumentsInternational` — US-listed assets; same `{ market, page, pageSize, total, items }` shape, wire envelope is `{ items, totalCount }` | Done |
 | `tasks/cartera` | Cash movements (classified + aggregated) + holdings summary (P&L, totals by classification) | Done |
 | `tasks/cartera` (saldo) | `carteraSaldo` — standing cash balance per caja as of a date; only `montoConvertido` totals | Done |
-| `adapters/node` | `FetchHttpClient` / `FileTokenStore` / `SystemClock` / `FileAuditSink` | Done |
+| `adapters/node` | `FetchHttpClient` / `FileTokenStore` / `SystemClock` / `FileAuditSink` + `PlaywrightBrowserLogin` (lazy `playwright`) | Done |
 | `adapters/fake` | In-memory fakes for the four seams (`testing`) | Done |
 | `audit` | `audited()` wrapper — one receipt per task | Done |
 

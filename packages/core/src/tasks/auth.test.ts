@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { PROACTIVE_REFRESH_SECONDS } from '../config/index.js';
+import { BROWSER_LOGIN_TIMEOUT_MS, PROACTIVE_REFRESH_SECONDS } from '../config/index.js';
+import { ContractError, LoginFailedError } from '../errors/index.js';
 import {
+  FakeBrowserLogin,
   FakeHttpClient,
   FixedClock,
+  MemoryAuditSink,
   MemoryTokenStore,
   fakeRuntime,
 } from '../adapters/fake/index.js';
-import { authStatus, login, logout } from './auth.js';
+import { tokenFromSignIn } from '../auth/service.js';
+import { authStatus, browserLogin, login, logout } from './auth.js';
 
 function jwtWithExp(expSeconds: number): string {
   const b64 = (s: string): string => Buffer.from(s, 'utf8').toString('base64url');
@@ -78,5 +82,83 @@ describe('login', () => {
       /SignIn failed/,
     );
     expect(await tokens.get()).toBeNull();
+  });
+});
+
+describe('browserLogin', () => {
+  const nowMs = 1_000_000_000_000;
+  const minted = jwtWithExp(nowMs / 1000 + 3600);
+
+  it('opens the browser, caches only the token, and audits without it', async () => {
+    const browser = new FakeBrowserLogin(minted);
+    const tokens = new MemoryTokenStore();
+    const audit = new MemoryAuditSink();
+    const rt = fakeRuntime({ browser, tokens, audit, clock: new FixedClock(nowMs) });
+
+    expect(await browserLogin(rt)).toEqual({ authenticated: true, reason: 'signed_in' });
+    expect(await tokens.get()).toBe(minted);
+    expect(browser.calls).toEqual([{ timeoutMs: BROWSER_LOGIN_TIMEOUT_MS }]);
+    expect(audit.entries).toHaveLength(1);
+    expect(audit.entries[0]).toMatchObject({
+      action: 'auth.login',
+      result: 'ok',
+      method: 'browser',
+    });
+    expect(JSON.stringify(audit.entries)).not.toContain(minted);
+  });
+
+  it('is idempotent: an active cached token never opens a window', async () => {
+    const browser = new FakeBrowserLogin('unused');
+    const rt = fakeRuntime({
+      browser,
+      tokens: new MemoryTokenStore(minted),
+      clock: new FixedClock(nowMs),
+    });
+    expect(await browserLogin(rt)).toEqual({
+      authenticated: true,
+      reason: 'already_authenticated',
+    });
+    expect(browser.calls).toHaveLength(0);
+  });
+
+  it('signs in again when the cached token is inside the refresh window', async () => {
+    const browser = new FakeBrowserLogin(minted);
+    const stale = jwtWithExp(nowMs / 1000 + PROACTIVE_REFRESH_SECONDS - 5);
+    const tokens = new MemoryTokenStore(stale);
+    const rt = fakeRuntime({ browser, tokens, clock: new FixedClock(nowMs) });
+    expect(await browserLogin(rt)).toMatchObject({ reason: 'signed_in' });
+    expect(await tokens.get()).toBe(minted);
+  });
+
+  it('a timeout / closed window caches nothing and is audited as an error', async () => {
+    const tokens = new MemoryTokenStore();
+    const audit = new MemoryAuditSink();
+    const rt = fakeRuntime({ browser: new FakeBrowserLogin(null), tokens, audit });
+    await expect(browserLogin(rt)).rejects.toBeInstanceOf(LoginFailedError);
+    expect(await tokens.get()).toBeNull();
+    expect(audit.entries[0]).toMatchObject({ action: 'auth.login', result: 'error' });
+  });
+
+  it('passes contract drift through and caches nothing', async () => {
+    const tokens = new MemoryTokenStore();
+    const browser = new FakeBrowserLogin(null, new ContractError('no token'));
+    const rt = fakeRuntime({ browser, tokens });
+    await expect(browserLogin(rt)).rejects.toBeInstanceOf(ContractError);
+    expect(await tokens.get()).toBeNull();
+  });
+
+  it('fails with a pointer to the CLI when no browser seam is wired', async () => {
+    await expect(browserLogin(fakeRuntime())).rejects.toThrow(/nemo auth login/);
+  });
+});
+
+describe('tokenFromSignIn', () => {
+  it('takes only the top-level token from the observed web-login shape', () => {
+    const body = { token: 'tkn', user: { nombre: 'Synthetic' }, systemConfig: {} };
+    expect(tokenFromSignIn(body)).toBe('tkn');
+  });
+
+  it.each([null, 'tkn', {}, { token: '' }, { token: 42 }])('returns null for %j', (body) => {
+    expect(tokenFromSignIn(body)).toBeNull();
   });
 });

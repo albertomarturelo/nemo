@@ -55,9 +55,11 @@ publica con su propio tag (`core-v*` / `cli-v*`,
 - **Claude Code** — conecta el mismo MCP (`.mcp.json` / `claude mcp add`), y/o deja
   que Claude Code use la CLI directamente por Bash.
 
-La contraseña nunca llega al LLM ni a disco: el login es un prompt oculto de la CLI
-(`nemo auth login`) — ningún tool de MCP recibe contraseña, y no existe un tool para
-iniciar sesión. Ver [ADR-006](docs/decisions/006-credentials-cli-only-never-mcp.md).
+La contraseña nunca llega al LLM ni a disco. En la CLI se escribe en un prompt
+oculto (`nemo auth login`). En el MCP, `auth_login` abre un navegador en la página
+de login de Vector y la escribes ahí: el servidor solo recibe el token. Ningún tool
+de MCP recibe contraseña. Ver [ADR-006](docs/decisions/006-credentials-cli-only-never-mcp.md)
+y [`mcp-browser-login`](docs/decisions/2026-10-15-mcp-browser-login.md).
 
 ## Capacidades
 
@@ -87,10 +89,12 @@ fallido, `1` cualquier otro error.
 ### Vía MCP (Claude Desktop / Claude Code)
 
 Recursos de orientación (`nemo://session`, `nemo://config`) y tools de lectura
-(`auth_status`, `auth_logout`, `instruments_local`, `instruments_international`,
-`instrument_prices`, `cartera_summary`, `cartera_movements`, `cartera_saldo`).
-**No hay tool de login** — la contraseña es exclusiva de la CLI (ADR-006). Las
-lecturas requieren una sesión ya iniciada (`nemo auth login` en la terminal).
+(`auth_login`, `auth_status`, `auth_logout`, `instruments_local`,
+`instruments_international`, `instrument_prices`, `cartera_summary`,
+`cartera_movements`, `cartera_saldo`). `auth_login` no recibe argumentos: abre un
+navegador en la página de Vector, inicias sesión ahí y la tool espera hasta 5
+minutos. Necesita un navegador: el Chromium de Playwright
+(`npx playwright install chromium`) o Google Chrome instalado.
 
 ## Desarrollo
 

@@ -18,7 +18,7 @@ export function registerInstrumentsTools(server: McpServer, runtime: Runtime): v
       description:
         'List local (Chilean) instruments from the Vector portal, paged. Returns the ' +
         'curated JSON envelope { market, page, pageSize, total, items }. Requires a live ' +
-        'session (use the CLI `nemo auth login` first — the MCP server cannot sign in).',
+        'session (call auth_login first when signed out).',
       inputSchema: {
         search: z.string().optional(),
         page: z.number().int().positive().optional(),
@@ -44,8 +44,7 @@ export function registerInstrumentsTools(server: McpServer, runtime: Runtime): v
         'List international (US-listed) instruments from the Vector portal, paged. Filter by ' +
         'symbol/name (search) and/or exchange (e.g. NASDAQ, NYSE). Returns the curated JSON ' +
         'envelope { market, page, pageSize, total, items } — the same shape as instruments_local. ' +
-        'Requires a live session (use the CLI `nemo auth login` first — the MCP server cannot ' +
-        'sign in).',
+        'Requires a live session (call auth_login first when signed out).',
       inputSchema: {
         search: z.string().optional(),
         exchange: z.string().optional(),
@@ -73,8 +72,7 @@ export function registerInstrumentsTools(server: McpServer, runtime: Runtime): v
         'Daily price history (~1 year) for a LOCAL (Chilean) instrument by idInstrumento, with ' +
         'summary stats (total return, σ, min, max). Returns the curated JSON envelope ' +
         '{ market, idInstrumento, points, stats }. Local instruments only (the endpoint does ' +
-        'not serve international assets). Requires a live session (use the CLI `nemo auth login` ' +
-        'first — the MCP server cannot sign in).',
+        'not serve international assets). Requires a live session (call auth_login first when signed out).',
       inputSchema: {
         id: z.number().int().positive(),
       },

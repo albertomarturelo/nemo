@@ -10,6 +10,10 @@ import {
 } from './adapters/node/index.js';
 import type { Runtime } from './seams/index.js';
 
+// Browser sign-in default (lazy `playwright`), wired explicitly by the MCP server
+// only — `createNodeRuntime` leaves `browser` unset, so the CLI never gets one.
+export { PlaywrightBrowserLogin } from './adapters/node/browser-login.js';
+
 export {
   FetchHttpClient,
   FileAuditSink,

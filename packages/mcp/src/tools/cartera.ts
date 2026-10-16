@@ -20,7 +20,7 @@ export function registerCarteraTools(server: McpServer, runtime: Runtime): void 
         'List cash movements over a date range (default: last 365 days), each classified as ' +
         'dividend / buy / sell / commission / cash_in / cash_out / other, with per-nemotécnico ' +
         'aggregates. Returns the JSON envelope { from, to, summary, buckets }. Requires a live ' +
-        'session (sign in with the CLI `nemo auth login` first — the MCP server cannot sign in).',
+        'session (call auth_login first when signed out).',
       inputSchema: {
         desde: z.string().optional(),
         hasta: z.string().optional(),
@@ -46,7 +46,7 @@ export function registerCarteraTools(server: McpServer, runtime: Runtime): void 
         'List current holdings, each valued in the requested currency with a computed profit/loss, ' +
         'plus totals grouped by classification and a grand total. Returns the JSON envelope ' +
         '{ currency, queryDate, holdings, totalsByClassification, totals }. Requires a live session ' +
-        '(sign in with the CLI `nemo auth login` first — the MCP server cannot sign in).',
+        '(call auth_login first when signed out).',
       inputSchema: {
         accountId: z.number().int().nonnegative().optional(),
         currency: z.string().optional(),
@@ -72,8 +72,7 @@ export function registerCarteraTools(server: McpServer, runtime: Runtime): void 
         'Show the cash balance of every caja as of a date (default: today), each valued in the ' +
         'requested currency, plus a grand total. This is the standing cash balance, not the ' +
         'flows `cartera_movements` reports. Returns the JSON envelope ' +
-        '{ currency, fecha, balances, total }. Requires a live session (sign in with the CLI ' +
-        '`nemo auth login` first — the MCP server cannot sign in).',
+        '{ currency, fecha, balances, total }. Requires a live session (call auth_login first when signed out).',
       inputSchema: {
         accountId: z.number().int().nonnegative().optional(),
         currency: z.string().optional(),

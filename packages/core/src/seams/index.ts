@@ -2,7 +2,8 @@
 // core touches — the network, the token cache, the wall clock, the audit sink — is
 // an interface here with a Node default in `adapters/node` and an in-memory fake in
 // `adapters/fake`. Tests inject fakes so they never touch the real Vector portal,
-// the real filesystem, or the real clock. A `Runtime` is one bundle of the four.
+// the real filesystem, or the real clock. A `Runtime` is one bundle of the four,
+// plus the optional `BrowserLogin` (ADR `mcp-browser-login`).
 //
 // Vector is a plain JSON REST API with bearer-token auth, so — unlike a browser-
 // driven portal — the network seam is a thin HTTP client, not a Playwright driver.
@@ -63,6 +64,19 @@ export interface AuditSink {
   write(entry: AuditEntry): Promise<void>;
 }
 
+/** Options for one headed browser sign-in. */
+export interface BrowserSignInOptions {
+  /** Give up (and raise `LoginFailedError`) after this long. */
+  timeoutMs: number;
+}
+
+/** Sign in through Vector's OWN web page in a visible browser and hand back only the
+ *  bearer token. The user types the password into Vector's page — it never crosses
+ *  this seam. Default: Playwright (`./node` subpath, lazy import). */
+export interface BrowserLogin {
+  signIn(options: BrowserSignInOptions): Promise<string>;
+}
+
 /** The composed set of seams a task runs against. Surfaces build one (via the
  *  `@albertomarturelo/nemo-core/node` composition root) and pass it into every task. */
 export interface Runtime {
@@ -70,4 +84,7 @@ export interface Runtime {
   tokens: TokenStore;
   clock: Clock;
   audit: AuditSink;
+  /** Present only where browser sign-in is wired (the MCP server). The CLI signs in
+   *  with its hidden prompt and leaves this unset. */
+  browser?: BrowserLogin;
 }
