@@ -1,6 +1,7 @@
 // Server-level tests: the tool/resource surface + the auth/read tools. Asserts the
 // ADR-006 invariant — NO tool accepts a password — and that the browser sign-in tool
 // (ADR `mcp-browser-login`) declares no input at all. Fakes only, no network.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { testing } from '@albertomarturelo/nemo-core';
 import {
@@ -43,6 +44,18 @@ describe('@nemo/mcp server (in-memory client, fake runtime, no network)', () => 
     expect(resources.map((r) => r.uri).sort()).toEqual(['nemo://config', 'nemo://session']);
     const cfg = await client.readResource({ uri: 'nemo://config' });
     expect(resourceText(cfg)).toContain('portalclientes.vectorcapital.cl');
+  });
+
+  it('advertises the package version in the initialize handshake', async () => {
+    // The server version is a literal in server.ts while a release bumps
+    // package.json (the tag/version gate reads package.json, ADR-015). Claude
+    // Desktop / Code see only the handshake value, so drift between the two
+    // must fail here, not in the field — mirrors the CLI's `--version` guard.
+    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+      version: string;
+    };
+    const client = await connect(makeRuntime());
+    expect(client.getServerVersion()).toEqual({ name: 'nemo', version: pkg.version });
   });
 
   it('auth_login signs in through the browser seam and caches the token', async () => {

@@ -174,7 +174,9 @@ checklist for the rules below and stops for an explicit OK before any tag.
 - **A user-visible version literal must be tested against `package.json`.** The
   CLI's `--version` is a literal in `program.ts`; once a package is installable
   it is the only way a user can tell what they have, so a test asserts the two
-  agree (`packages/cli/src/program.test.ts`).
+  agree (`packages/cli/src/program.test.ts`). The MCP server's version, sent in
+  the initialize handshake, is guarded the same way
+  (`packages/mcp/src/server.test.ts`).
 - **Publishing a package that was `private` is a decision, not a chore** — it
   puts command names, flags, exit codes, and output shape under semver. It gets
   an ADR (ADR-015).
