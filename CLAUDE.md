@@ -30,7 +30,7 @@ hard-won Vector wire knowledge and guardrails are **ported**, the code is not.
 This repo runs under **Context-First Development (CFD)**: decisions-before-code
 (ADRs), a context layer each session reads first, and Agent Skills in
 `.agents/skills/` (`.claude/skills` is a symlink): `/session-start`,
-`/session-close`, `/issue-new`, `/issue-start` (manual-only rituals), plus
+`/session-close`, `/issue-new`, `/issue-start`, `/release` (manual-only), plus
 `/new-decision`, `/review-pr`, `/validate-context`, `/status`. The essay lives
 upstream at
 [context-first-development](https://github.com/albertomarturelo/context-first-development/blob/main/context-first-development.md);

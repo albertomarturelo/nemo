@@ -134,6 +134,9 @@ ADR-016). It starts with the load-bearing rules ported from the proven Python
 
 ## Releases & publishing
 
+Run releases through the `/release` skill (`.agents/skills/release/`). It is the
+checklist for the rules below and stops for an explicit OK before any tag.
+
 - **Release tags name their package: `<pkg>-v<version>`** (`core-v0.2.0`,
   `cli-v0.1.0`). Each package versions independently — there is no lockstep
   release. A bare `v*` tag is legacy and means nothing now (ADR-014 / ADR-015).
