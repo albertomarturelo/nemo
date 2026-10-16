@@ -1,5 +1,9 @@
 ---
-description: Create a self-sufficient nemo unit of work as a GitHub Issue with the fixed CFD body template (Context, Target, ADRs to load, Acceptance criteria, Reproduction, Estimated sessions). Use when the user asks to "open an issue", "create a work item", "plan a task", or describes new work to be tracked. Implements CFD (ADR-001).
+name: issue-new
+description: "Create a self-sufficient nemo unit of work as a GitHub Issue with the fixed CFD body template (Context, Target, ADRs to load, Acceptance criteria, Reproduction, Estimated sessions). Invoke explicitly when new work needs a tracker issue."
+disable-model-invocation: true
+metadata:
+  token-budget: "~1,500–3,000 for the full flow"
 ---
 
 Guide the user through creating a GitHub Issue with the fixed CFD body template. The
@@ -13,12 +17,15 @@ thorough. Ask, in order, and confirm each answer:
    surface `<mod>` typically means: `packages/core/src/tasks/<mod>.ts` (new file),
    `packages/cli/src/commands/<mod>.ts` (new file, registered by one line in
    `program.ts`), `packages/mcp/src/tools/<mod>.ts` (new file, one line in
-   `server.ts`) — append-only (ADR-007). Mark each `new file`.
+   `server.ts`) — append-only (ADR-007). Mark each `new file`; existing files that
+   will be modified (`program.ts`, `server.ts`, `config/index.ts`) are listed too —
+   `issue-start` reads those before editing.
 5. **Pattern to mirror.** The existing module the work should copy in shape and
    naming — `instruments` is the template read surface. Flag if no analog exists.
-6. **ADRs to load.** ADR numbers the agent must read first (at least the
+6. **ADRs to load.** ADRs the agent must read first — numbered (`ADR-007`) or
+   by slug for newer ones (`ADR adopt-cfd-upstream-revisions`). At least the
    architectural ones the change touches: ADR-003 core boundary/seams, ADR-004
-   Vector contract, ADR-005 auth, ADR-006 credentials, ADR-007 append-only). If a
+   Vector contract, ADR-005 auth, ADR-006 credentials, ADR-007 append-only. If a
    needed decision is not yet an ADR, **STOP and run `new-decision`** — implementing
    an undocumented decision is forbidden (ADR-001).
 7. **Acceptance criteria (DoD).** Markdown `[ ]` items covering all three of:
@@ -30,7 +37,7 @@ thorough. Ask, in order, and confirm each answer:
 9. **Estimated sessions.** `1` | `2–3` | `4+`. If > 1, **propose decomposing into
    sub-issues before continuing** (ADR-001, short sessions).
 10. **Labels.** The type plus any component (`core`, `cli`, `mcp`, `auth`,
-    `instruments`, `portfolio`, `ci`).
+    `instruments`, `cartera`, `ci`).
 
 Then generate the body using the fixed template — do not change section order or
 names; `issue-start` parses by header:
@@ -44,7 +51,8 @@ names; `issue-start` parses by header:
 - Pattern to mirror: <step 5>
 
 ## ADRs to load
-- [ADR-NNN](docs/decisions/NNN-*.md)
+- [ADR-NNN](docs/decisions/NNN-<slug>.md)  <!-- legacy numbered -->
+- [<slug>](docs/decisions/YYYY-MM-DD-<slug>.md)
 
 ## Acceptance criteria
 - [ ] <step 7>

@@ -1,8 +1,8 @@
-# ADR-`<NNN>`: `<Decision Title>`
+# `<Decision Title>`
 
 ## Status
 
-`<Proposed | Accepted | Superseded by ADR-XXX | Deprecated>` — `<YYYY-MM-DD>`
+`<Proposed | Accepted | Superseded by <slug> | Deprecated>` — `<YYYY-MM-DD>`
 
 ## Context
 
@@ -27,4 +27,6 @@ conventions, naming patterns, or code shapes when applicable.>
 ADRs are persistent memory for your future self AND the AI agent. Write the
 rationale so the model knows WHY without scanning code. Keep ≤100 lines.
 The five section headers above are mandatory and CI-checked — do not rename them.
+File: docs/decisions/YYYY-MM-DD-<slug>.md. The slug is the ID; never compute a
+sequence number (ADR adopt-cfd-upstream-revisions).
 -->

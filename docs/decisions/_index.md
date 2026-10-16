@@ -8,6 +8,10 @@ Every ADR carries the five mandatory sections (`Status`, `Context`, `Decision`,
 `Alternatives Considered`, `Consequences`) — CI enforces it. Add a new one with
 the `new-decision` skill and append its row here in the same change.
 
+New ADRs are `YYYY-MM-DD-<slug>.md` and the slug is the ID (cite as `ADR <slug>`);
+numbered ADRs keep their number forever. One table, ordered by date
+(ADR `adopt-cfd-upstream-revisions`).
+
 | ID  | Title                                                                                     | Status   | Date       |
 | --- | ----------------------------------------------------------------------------------------- | -------- | ---------- |
 | 001 | [Adopt Context-First Development (CFD)](001-adopt-cfd-methodology.md)                       | Accepted | 2026-07-03 |
@@ -25,3 +29,4 @@ the `new-decision` skill and append its row here in the same change.
 | 013 | [Rename `portfolio` → `cartera`; entrenched-Spanish surface naming](013-cartera-spanish-surface-naming.md) | Accepted | 2026-07-07 |
 | 014 | [Publish `@albertomarturelo/nemo-core` to npm via tag-triggered CD](014-npm-publish-core-cd.md)          | Accepted | 2026-07-09 |
 | 015 | [Publish `@albertomarturelo/nemo-cli` to npm; per-package release tags](015-publish-cli-npm-per-package-tags.md) | Accepted | 2026-07-26 |
+| adopt-cfd-upstream-revisions | [Adopt the CFD upstream revisions (Agent Skills, hooks, date-slug ADRs)](2026-10-15-adopt-cfd-upstream-revisions.md) | Accepted | 2026-10-15 |

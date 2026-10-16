@@ -35,7 +35,8 @@ nemo/                         # pnpm workspaces, TypeScript project references
 │   ├── cli/   (@albertomarturelo/nemo-cli)     # Human CLI (terminal). Also what Claude Code drives via Bash.
 │   └── mcp/   (@nemo/mcp)     # MCP stdio server. The integration point for Claude Code AND Claude Desktop.
 ├── docs/                     # CFD context layer (this file lives here)
-└── .claude/skills/           # CFD skills
+├── .agents/skills/           # CFD Agent Skills (.claude/skills is a symlink)
+└── .claude/hooks/            # SessionStart hook (injects CURRENT_STATUS + ADR index)
 ```
 
 - **`@albertomarturelo/nemo-cli`** — the human terminal surface (`nemo …`). Claude Code can also

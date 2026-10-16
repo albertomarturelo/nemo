@@ -3,5 +3,17 @@
     "type": "command",
     "command": ".claude/statusline.sh",
     "padding": 0
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-start-context.sh"
+          }
+        ]
+      }
+    ]
   }
 }
