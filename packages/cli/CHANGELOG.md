@@ -13,7 +13,7 @@ All notable changes to the CLI package are documented here. The format follows
 - `nemo auth login --password-env <VAR>` and `--password-stdin`, for cron, CI and
   agents. Both need `--user` and never fall back to another source. The variable
   is removed from the environment once read, and stdin is refused when it is a
-  terminal (ADR `non-interactive-login`).
+  terminal and given up on after 10 s of silence (ADR `non-interactive-login`).
 
 ### Changed
 

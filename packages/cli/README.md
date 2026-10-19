@@ -95,7 +95,9 @@ The password comes from exactly one source, named on the command line:
   variable; there is no default name. The CLI removes it from its environment as
   soon as it reads it, so nothing it starts inherits it.
 - **`--password-stdin`**, for the same uses: the first line of a pipe or a file
-  (`--password-stdin < file`). It refuses a terminal; there, use the prompt.
+  (`--password-stdin < file`). It refuses a terminal; there, use the prompt. If
+  no line arrives within 10 seconds it gives up (type `login_failed`) instead of
+  waiting on a pipe that never speaks.
 
 The password is never a flag value or an argument, so it stays out of the shell
 history and the process list. No source falls back to another. Both unattended

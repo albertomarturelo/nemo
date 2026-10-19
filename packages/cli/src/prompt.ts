@@ -4,6 +4,12 @@
 // list (ADR-006). Unattended, it comes from an env var the caller names or from
 // stdin (ADR `non-interactive-login`).
 import { createInterface } from 'node:readline';
+import { LoginFailedError } from '@albertomarturelo/nemo-core';
+
+/** How long `--password-stdin` waits for its line. A file or a pipe from `printf`
+ *  answers at once; a harness that leaves stdin as an open, silent pipe would
+ *  otherwise hang the login forever. */
+export const STDIN_TIMEOUT_MS = 10_000;
 
 export interface Prompters {
   /** Prompt for a visible line of input. */
@@ -49,7 +55,8 @@ export interface ProcessInputs {
   stdin: {
     /** True when stdin is a terminal, where `--password-stdin` refuses to read. */
     isTTY: boolean;
-    /** The first line of stdin without its line break; `''` when stdin is empty. */
+    /** The first line of stdin without its line break; `''` when stdin is empty.
+     *  Rejects with `LoginFailedError` when no line arrives within the timeout. */
     readLine(): Promise<string>;
   };
 }
@@ -64,13 +71,34 @@ export const nodeInputs: ProcessInputs = {
       // readline strips the one `\n` / `\r\n` ending the line and keeps any other
       // whitespace, which may belong to the password.
       const rl = createInterface({ input: process.stdin, terminal: false, crlfDelay: Infinity });
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         let line: string | null = null;
+        let timedOut = false;
+        // `rl.close()` emits 'close' synchronously, so the timeout only flags itself
+        // and lets the one 'close' handler settle the promise.
+        const timer = setTimeout(() => {
+          timedOut = true;
+          rl.close();
+        }, STDIN_TIMEOUT_MS);
         rl.once('line', (first) => {
           line = first;
           rl.close();
         });
-        rl.once('close', () => resolve(line ?? ''));
+        rl.once('close', () => {
+          clearTimeout(timer);
+          // Nothing reads stdin after this, and an open pipe would keep the process
+          // alive after the command is done.
+          process.stdin.destroy();
+          if (timedOut) {
+            reject(
+              new LoginFailedError(
+                `No password arrived on stdin within ${STDIN_TIMEOUT_MS / 1000} s — redirect it: \`--password-stdin < file\`.`,
+              ),
+            );
+            return;
+          }
+          resolve(line ?? '');
+        });
       });
     },
   },
