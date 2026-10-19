@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BROWSER_LOGIN_TIMEOUT_MS, PROACTIVE_REFRESH_SECONDS } from '../config/index.js';
-import { ContractError, LoginFailedError } from '../errors/index.js';
+import { ContractError, LoginFailedError, ValidationError } from '../errors/index.js';
 import {
   FakeBrowserLogin,
   FakeHttpClient,
@@ -59,18 +59,35 @@ describe('logout', () => {
 });
 
 describe('login', () => {
-  it('signs in and caches the token', async () => {
+  const nowMs = 1_000_000_000_000;
+  const live = jwtWithExp(nowMs / 1000 + 3600);
+  const stale = jwtWithExp(nowMs / 1000 + PROACTIVE_REFRESH_SECONDS - 5);
+  const password =
+    (value = 'secret') =>
+    () =>
+      Promise.resolve(value);
+  const neverAsked = (): Promise<string> => Promise.reject(new Error('password was read'));
+
+  it('signs in, caches the token with its owner, and audits the source', async () => {
     const http = new FakeHttpClient((req) => {
       expect(req.url).toContain('/publicapi/shared/auth/SignIn');
       expect(req.body).toEqual({ userName: 'me@mail.cl', password: 'secret' });
       return { json: { token: 'minted-token' } };
     });
     const tokens = new MemoryTokenStore();
-    const rt = fakeRuntime({ http, tokens });
+    const audit = new MemoryAuditSink();
+    const rt = fakeRuntime({ http, tokens, audit });
 
-    const result = await login(rt, { username: 'me@mail.cl', password: 'secret' });
-    expect(result).toEqual({ authenticated: true, username: 'me@mail.cl' });
+    const result = await login(rt, {
+      username: 'me@mail.cl',
+      source: 'env',
+      password: password(),
+    });
+    expect(result).toEqual({ authenticated: true, username: 'me@mail.cl', reason: 'signed_in' });
     expect(await tokens.get()).toBe('minted-token');
+    expect(await tokens.username()).toBe('me@mail.cl');
+    expect(audit.entries[0]).toMatchObject({ action: 'auth.login', result: 'ok', source: 'env' });
+    expect(JSON.stringify(audit.entries)).not.toContain('secret');
   });
 
   it('throws LoginFailedError on a 4xx and never caches', async () => {
@@ -78,10 +95,79 @@ describe('login', () => {
     const tokens = new MemoryTokenStore();
     const rt = fakeRuntime({ http, tokens });
 
-    await expect(login(rt, { username: 'me@mail.cl', password: 'nope' })).rejects.toThrow(
-      /SignIn failed/,
-    );
+    await expect(
+      login(rt, { username: 'me@mail.cl', source: 'prompt', password: password('nope') }),
+    ).rejects.toThrow(/SignIn failed/);
     expect(await tokens.get()).toBeNull();
+  });
+
+  it('a live token for the same user answers already_authenticated with no call', async () => {
+    const http = new FakeHttpClient();
+    const audit = new MemoryAuditSink();
+    const rt = fakeRuntime({
+      http,
+      audit,
+      clock: new FixedClock(nowMs),
+      tokens: new MemoryTokenStore(live, 'me@mail.cl'),
+    });
+
+    const result = await login(rt, {
+      username: ' Me@Mail.cl ',
+      source: 'stdin',
+      password: neverAsked,
+    });
+    expect(result).toEqual({
+      authenticated: true,
+      username: 'Me@Mail.cl',
+      reason: 'already_authenticated',
+    });
+    expect(http.calls).toHaveLength(0);
+    expect(audit.entries).toHaveLength(0);
+  });
+
+  it.each([
+    ['another account', 'other@mail.cl', /another account/],
+    ['an unrecorded account', null, /not recorded/],
+  ])('a live token for %s is refused with no call', async (_label, owner, message) => {
+    const http = new FakeHttpClient();
+    const tokens = new MemoryTokenStore(live, owner);
+    const rt = fakeRuntime({ http, tokens, clock: new FixedClock(nowMs) });
+
+    const error: unknown = await login(rt, {
+      username: 'me@mail.cl',
+      source: 'env',
+      password: neverAsked,
+    }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ValidationError);
+    expect((error as Error).message).toMatch(message);
+    expect(http.calls).toHaveLength(0);
+    expect(await tokens.get()).toBe(live);
+  });
+
+  it('signs in again over a token inside the refresh window, even for another user', async () => {
+    const http = new FakeHttpClient(() => ({ json: { token: 'minted-token' } }));
+    const tokens = new MemoryTokenStore(stale, 'other@mail.cl');
+    const rt = fakeRuntime({ http, tokens, clock: new FixedClock(nowMs) });
+
+    const result = await login(rt, {
+      username: 'me@mail.cl',
+      source: 'prompt',
+      password: password(),
+    });
+    expect(result.reason).toBe('signed_in');
+    expect(await tokens.username()).toBe('me@mail.cl');
+  });
+
+  it('refuses an empty password or email before any call', async () => {
+    const http = new FakeHttpClient();
+    const rt = fakeRuntime({ http });
+    await expect(
+      login(rt, { username: 'me@mail.cl', source: 'prompt', password: password('') }),
+    ).rejects.toThrow(LoginFailedError);
+    await expect(
+      login(rt, { username: '  ', source: 'prompt', password: password() }),
+    ).rejects.toThrow(ValidationError);
+    expect(http.calls).toHaveLength(0);
   });
 });
 
@@ -102,8 +188,9 @@ describe('browserLogin', () => {
     expect(audit.entries[0]).toMatchObject({
       action: 'auth.login',
       result: 'ok',
-      method: 'browser',
+      source: 'browser',
     });
+    expect(await tokens.username()).toBeNull(); // the email was typed on Vector's page
     expect(JSON.stringify(audit.entries)).not.toContain(minted);
   });
 

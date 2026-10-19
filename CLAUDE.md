@@ -72,14 +72,17 @@ and the ADR index.
   exceptions are the two bootstrap calls in `auth/service` (`signIn`,
   `refreshToken`). On renewal failure it clears the token and raises
   `SessionExpiredError` ("run `nemo auth login`") — never re-`SignIn` (ADR-005).
-- **The password never reaches the model or the MCP.** Either it is typed at a
-  hidden CLI prompt (never a flag/env/arg) and held for one `signIn`, or it is
-  typed into Vector's own page in the browser sign-in (`browserLogin`), where it
-  never enters nemo. Only the bearer token is cached (`~/.nemo/`). The
-  password-taking `login` is exported ONLY from `@albertomarturelo/nemo-core/cli`, so
-  the MCP can wire nothing but the credential-free `auth_login`. No MCP tool
-  takes a password (ADR-006, ADR `mcp-browser-login`). CI + `server.test.ts`
-  guard it.
+- **The password never reaches the model or the MCP.** The CLI takes it from ONE
+  source named on the command line: the hidden prompt (default), or, unattended,
+  an env var the caller names (`--password-env <VAR>`, deleted once read) or stdin
+  (`--password-stdin`). Never a password-valued flag or argument, never an
+  implicit default variable, no fallback between sources. It is held for one
+  `signIn`; or it is typed into Vector's own page (`browserLogin`) and never enters
+  nemo. Only the bearer token and its owner's email are cached (`~/.nemo/` or
+  `NEMO_HOME`). The password-taking `login` is exported ONLY from
+  `@albertomarturelo/nemo-core/cli`, so the MCP can wire nothing but the
+  credential-free `auth_login`. No MCP tool takes a password (ADR-006, ADR
+  `mcp-browser-login`, ADR `non-interactive-login`). CI + `server.test.ts` guard it.
 - **External dependencies go through injectable seams.** `HttpClient`,
   `TokenStore`, `Clock`, `AuditSink` are interfaces with Node defaults (in the
   `@albertomarturelo/nemo-core/node` subpath) and in-memory fakes (`testing`); tests inject

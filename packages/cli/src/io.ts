@@ -1,10 +1,11 @@
 // Output + error→exit-code mapping for the CLI. The broker's messages pass through
 // unchanged (CONVENTIONS: opaque translations waste the user's time).
-import type { Command } from 'commander';
+import { CommanderError, type Command } from 'commander';
 import {
   classifyError,
   LoginFailedError,
   NotAuthenticatedError,
+  ValidationError,
 } from '@albertomarturelo/nemo-core';
 
 // JSON is the DEFAULT output: the CLI is a faithful façade over the @albertomarturelo/nemo-core
@@ -60,4 +61,22 @@ export function renderError(error: unknown): string {
   const { type, message } = classifyError(error);
   if (isHumanMode()) return message;
   return JSON.stringify({ error: message, type, exitCode: exitCodeFor(error) });
+}
+
+// Commander's own exits: help and version are already printed and carry their exit
+// code (`nemo` with no command prints help and exits 1).
+const COMMANDER_EXITS = new Set(['commander.help', 'commander.helpDisplayed', 'commander.version']);
+
+/** True for commander's help / version exits, which print nothing more. */
+export function isCommanderExit(error: unknown): error is CommanderError {
+  return error instanceof CommanderError && COMMANDER_EXITS.has(error.code);
+}
+
+/** A commander usage error becomes a `ValidationError`, so it renders with
+ *  `type: 'validation'` like every other misconfigured command. */
+export function asDomainError(error: unknown): unknown {
+  if (error instanceof CommanderError) {
+    return new ValidationError(error.message.replace(/^error: /, ''));
+  }
+  return error;
 }

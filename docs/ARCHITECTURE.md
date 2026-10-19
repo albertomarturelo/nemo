@@ -41,9 +41,10 @@ nemo/                         # pnpm workspaces, TypeScript project references
 
 - **`@albertomarturelo/nemo-cli`** — the human terminal surface (`nemo …`). Claude Code can also
   invoke it directly through its Bash tool, so the CLI doubles as an AI-usable
-  surface inside Claude Code. It is the only surface that takes a password, at a
-  hidden prompt (ADR-006); `nemo auth login --browser` offers the same browser
-  sign-in the MCP uses.
+  surface inside Claude Code. It is the only surface that takes a password: at a
+  hidden prompt by default, or unattended from a named env var or stdin (ADR-006,
+  ADR `non-interactive-login`). `nemo auth login --browser` offers the same
+  browser sign-in the MCP uses.
 - **`@albertomarturelo/nemo-mcp`** — a stdio MCP server. Both **Claude Desktop** (via
   `claude_desktop_config.json`) and **Claude Code** (via `.mcp.json` / `claude
   mcp add`) consume stdio MCP servers, so this one package makes the same reads
@@ -66,9 +67,9 @@ portal, the real filesystem, or the wall clock:
 - `HttpClient` — issue an HTTP request (default: a Node `fetch` adapter; tests
   inject a route table). Vector is a plain JSON REST API, so this is a thin HTTP
   client — no browser / Playwright.
-- `TokenStore` — persist + read the cached bearer token (default: a JSON file
-  in the state directory, `~/.nemo/` or an absolute `NEMO_HOME`). The token is
-  the only secret that ever lands on disk.
+- `TokenStore` — persist + read the cached bearer token and its owner's email
+  (default: an owner-only JSON file in the state directory, `~/.nemo/` or an
+  absolute `NEMO_HOME`). The token is the only secret that ever lands on disk.
 - `Clock` — time, for testable JWT-exp math and pacing.
 - `AuditSink` — append the JSONL receipt (default: fs append; secret-looking keys
   dropped).
@@ -89,7 +90,7 @@ centralizing the auth-renewal rails — not full hexagonal ceremony (ADR-003).
 | `auth/jwt` | Signature-unverified `exp` peek for proactive renewal | Done |
 | `auth/service` | `signIn` + `refreshToken` bootstrap calls over the HTTP seam | Done |
 | `auth/session` | `request()` — the single authenticated HTTP path (proactive + reactive renew) | Done |
-| `tasks/auth` | `authStatus`, `logout`, `browserLogin` (barrel) + `login` (CLI-only subpath, ADR-006) | Done |
+| `tasks/auth` | `authStatus`, `logout`, `browserLogin` (barrel) + `login` (CLI-only subpath, ADR-006): idempotent over a live session of the same user, password read lazily from its `source` (ADR `non-interactive-login`) | Done |
 | `tasks/instruments` | `instrumentsLocal` — the first read; the template later reads mirror | Done |
 | `tasks/instruments` (prices) | `instrumentPrices` — local daily price history + pure stats/sparkline | Done |
 | `tasks/instruments` (intl) | `instrumentsInternational` — US-listed assets; same `{ market, page, pageSize, total, items }` shape, wire envelope is `{ items, totalCount }` | Done |

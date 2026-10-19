@@ -100,12 +100,21 @@ ADR-016). It starts with the load-bearing rules ported from the proven Python
   PII (email, RUT, holdings, amounts, order/movement data, account ids). Tests and
   `docs/vector-contract/` use SYNTHETIC data only. This is a mandatory PR-review
   gate (`review-pr` skill + PR-template checkbox) with a CI backstop.
-- **Credentials never touch disk and never reach the LLM.** The password is
-  entered at a hidden CLI prompt (`readline` with echo muted) — never a flag, env
-  var, or argument (no shell-history / argv / process-list leak) — held in memory
-  for one `signIn`, then discarded. Only the resulting bearer token is cached, in
-  a per-user JSON file in the state directory (`~/.nemo/`, or an absolute
-  `NEMO_HOME`). No MCP tool accepts a password (ADR-006).
+- **nemo never writes a credential to disk, and none reaches the LLM.** The CLI
+  takes the password from ONE source the command line names, with no fallback
+  between them (ADR-006, ADR `non-interactive-login`):
+  - the hidden prompt (`readline` with echo muted), the default;
+  - `--password-env <VAR>`, for unattended use: the caller names the variable (no
+    default name), and the CLI deletes it from `process.env` once read;
+  - `--password-stdin`, for unattended use: one line from a pipe or a file, never
+    a terminal.
+
+  Never a password-valued flag or argument (shell-history / argv / process-list
+  leak). Errors name the source, never the value. The password is held in memory
+  for one `signIn`, read only when no live session exists, then discarded. Only
+  the bearer token and its owner's email are cached, in an owner-only (`0600`)
+  JSON file in the state directory (`~/.nemo/`, or an absolute `NEMO_HOME`). No
+  MCP tool accepts a password.
 - **Never commit** `.env`, anything under `.nemo/`, or a real bearer token.
   `.gitignore` blocks them — re-verify before any `git add`.
 - **Audit every state-touching op** via the `AuditSink`: `{ ts, action, result,

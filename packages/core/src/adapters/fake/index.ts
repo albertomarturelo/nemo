@@ -51,18 +51,26 @@ export class FakeHttpClient implements HttpClient {
   }
 }
 
-/** Fake token store backed by a variable. */
+/** Fake token store backed by two variables: the token and its recorded owner. */
 export class MemoryTokenStore implements TokenStore {
-  constructor(private token: string | null = null) {}
+  constructor(
+    private token: string | null = null,
+    private owner: string | null = null,
+  ) {}
   get(): Promise<string | null> {
     return Promise.resolve(this.token);
   }
-  set(token: string): Promise<void> {
+  username(): Promise<string | null> {
+    return Promise.resolve(this.token === null ? null : this.owner);
+  }
+  set(token: string, username: string | null): Promise<void> {
     this.token = token;
+    this.owner = username;
     return Promise.resolve();
   }
   clear(): Promise<void> {
     this.token = null;
+    this.owner = null;
     return Promise.resolve();
   }
 }

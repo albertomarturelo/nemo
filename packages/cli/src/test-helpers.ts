@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { Prompters } from './prompt.js';
+import type { ProcessInputs, Prompters } from './prompt.js';
 
 /** Capture everything written to STDOUT during a test. */
 export function captureStdout(): { text(): string; restore(): void } {
@@ -18,4 +18,23 @@ export function scriptedPrompters(answers: { line?: string; hidden?: string }): 
     line: () => Promise.resolve(answers.line ?? ''),
     hidden: () => Promise.resolve(answers.hidden ?? ''),
   };
+}
+
+/** A fake process: a plain env object (so a test can see a variable deleted) and a
+ *  canned stdin that records whether it was read. */
+export function fakeInputs(
+  opts: { env?: Record<string, string | undefined>; stdin?: string; isTTY?: boolean } = {},
+): ProcessInputs & { stdinReads: number } {
+  const inputs = {
+    env: { ...opts.env },
+    stdinReads: 0,
+    stdin: {
+      isTTY: opts.isTTY ?? false,
+      readLine: (): Promise<string> => {
+        inputs.stdinReads += 1;
+        return Promise.resolve(opts.stdin ?? '');
+      },
+    },
+  };
+  return inputs;
 }

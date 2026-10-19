@@ -2,7 +2,7 @@
 // barrel (reachable only via `@albertomarturelo/nemo-core/node`, ADR-008) so importing the
 // library's tasks never pulls in `node:*`. Vector is a plain JSON REST API, so the
 // network default is a `fetch` client — no browser, no Playwright.
-import { appendFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { appendFile, chmod, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
 import { ValidationError } from '../../errors/index.js';
@@ -72,7 +72,8 @@ export class FetchHttpClient implements HttpClient {
   }
 }
 
-/** Default token store: a JSON file `{ "token": "..." }` in the state directory. */
+/** Default token store: a JSON file `{ "token": "...", "username"?: "..." }` in the
+ *  state directory, owner-only (`0600`): the bearer is a secret. */
 export class FileTokenStore implements TokenStore {
   private readonly file: string;
 
@@ -81,19 +82,32 @@ export class FileTokenStore implements TokenStore {
   }
 
   async get(): Promise<string | null> {
+    return this.field('token');
+  }
+
+  async username(): Promise<string | null> {
+    return this.field('username');
+  }
+
+  async set(token: string, username: string | null): Promise<void> {
+    await mkdir(dirname(this.file), { recursive: true });
+    const body = username === null ? { token } : { token, username };
+    await writeFile(this.file, JSON.stringify(body), { encoding: 'utf8', mode: 0o600 });
+    // `mode` applies only when the file is created; tighten one an older version
+    // wrote with the default umask.
+    await chmod(this.file, 0o600);
+  }
+
+  /** A non-empty string field of the file, or null (missing / unreadable file). */
+  private async field(name: 'token' | 'username'): Promise<string | null> {
     try {
       const raw: unknown = JSON.parse(await readFile(this.file, 'utf8'));
       if (typeof raw !== 'object' || raw === null) return null;
-      const token = (raw as Record<string, unknown>).token;
-      return typeof token === 'string' && token ? token : null;
+      const value = (raw as Record<string, unknown>)[name];
+      return typeof value === 'string' && value ? value : null;
     } catch {
       return null;
     }
-  }
-
-  async set(token: string): Promise<void> {
-    await mkdir(dirname(this.file), { recursive: true });
-    await writeFile(this.file, JSON.stringify({ token }), 'utf8');
   }
 
   async clear(): Promise<void> {

@@ -1,6 +1,8 @@
-// Terminal prompters, injectable so tests drive the login flow without a TTY. The
-// password prompt mutes echo — the password is never a flag/arg/env, so it can't
-// leak into shell history, argv, or the process list (ADR-006).
+// Terminal prompters and the process inputs, injectable so tests drive the login
+// flow without a TTY, a real environment, or a real stdin. The password is never a
+// flag or an argument, so it can't leak into shell history, argv, or the process
+// list (ADR-006). Unattended, it comes from an env var the caller names or from
+// stdin (ADR `non-interactive-login`).
 import { createInterface } from 'node:readline';
 
 export interface Prompters {
@@ -36,5 +38,40 @@ export const nodePrompters: Prompters = {
         resolve(answer);
       });
     });
+  },
+};
+
+/** The non-interactive password sources' view of the process. */
+export interface ProcessInputs {
+  /** The environment. A password variable is deleted from it once read, so no child
+   *  process inherits it. */
+  env: Record<string, string | undefined>;
+  stdin: {
+    /** True when stdin is a terminal, where `--password-stdin` refuses to read. */
+    isTTY: boolean;
+    /** The first line of stdin without its line break; `''` when stdin is empty. */
+    readLine(): Promise<string>;
+  };
+}
+
+export const nodeInputs: ProcessInputs = {
+  env: process.env,
+  stdin: {
+    get isTTY(): boolean {
+      return process.stdin.isTTY === true;
+    },
+    readLine(): Promise<string> {
+      // readline strips the one `\n` / `\r\n` ending the line and keeps any other
+      // whitespace, which may belong to the password.
+      const rl = createInterface({ input: process.stdin, terminal: false, crlfDelay: Infinity });
+      return new Promise((resolve) => {
+        let line: string | null = null;
+        rl.once('line', (first) => {
+          line = first;
+          rl.close();
+        });
+        rl.once('close', () => resolve(line ?? ''));
+      });
+    },
   },
 };

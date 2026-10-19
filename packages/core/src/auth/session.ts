@@ -16,7 +16,7 @@ import { refreshToken } from './service.js';
 export async function ensureToken(rt: Runtime): Promise<string> {
   const cached = await rt.tokens.get();
   if (cached === null) {
-    throw new NotAuthenticatedError('Session expired — run `nemo auth login` to authenticate.');
+    throw new NotAuthenticatedError('Not signed in — run `nemo auth login` to authenticate.');
   }
   if (isExpiringWithin(cached, PROACTIVE_REFRESH_SECONDS, rt.clock.now())) {
     let renewed: string;
@@ -26,7 +26,7 @@ export async function ensureToken(rt: Runtime): Promise<string> {
       await rt.tokens.clear();
       throw error instanceof SessionExpiredError ? error : new SessionExpiredError();
     }
-    await rt.tokens.set(renewed);
+    await rt.tokens.set(renewed, await rt.tokens.username());
     return renewed;
   }
   return cached;
@@ -71,7 +71,7 @@ export async function request(rt: Runtime, req: AuthedRequest): Promise<HttpResp
     await rt.tokens.clear();
     throw error instanceof SessionExpiredError ? error : new SessionExpiredError();
   }
-  await rt.tokens.set(renewed);
+  await rt.tokens.set(renewed, await rt.tokens.username());
   return send(renewed);
 }
 

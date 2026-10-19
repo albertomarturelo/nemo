@@ -4,7 +4,14 @@
 // documented exit codes; their messages pass through unchanged.
 import { PlaywrightBrowserLogin, createNodeRuntime } from '@albertomarturelo/nemo-core/node';
 import { buildProgram } from './program.js';
-import { err, exitCodeFor, renderError, setOutputMode } from './io.js';
+import {
+  asDomainError,
+  err,
+  exitCodeFor,
+  isCommanderExit,
+  renderError,
+  setOutputMode,
+} from './io.js';
 
 async function main(): Promise<void> {
   // The runtime is built before argv is parsed, so a failure there (a bad NEMO_HOME)
@@ -16,8 +23,13 @@ async function main(): Promise<void> {
   await buildProgram(runtime).parseAsync(process.argv);
 }
 
-main().catch((error: unknown) => {
+main().catch((caught: unknown) => {
+  if (isCommanderExit(caught)) {
+    process.exitCode = caught.exitCode;
+    return;
+  }
   // Errors go to STDERR (STDOUT stays clean for piping), as JSON by default.
+  const error = asDomainError(caught);
   err(renderError(error));
   process.exitCode = exitCodeFor(error);
 });
