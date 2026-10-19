@@ -14,9 +14,9 @@ on a schedule with nobody at the keyboard. The prompt login needs a TTY,
 `/workspace`, so `~/.nemo` is lost when its computer is recycled.
 
 An agent that controls its machine can read any secret its process can. What can
-still be protected: the password never enters the agent's transcript, a loop
-never retries a rejected password into a lockout, and a login happens only when
-the session is dead. That is rare, since Vector renews the token (ADR-005).
+be protected: the password never enters the agent's transcript, a loop never
+retries a rejected password into a lockout, and a login happens only when the
+session is dead (rare: Vector renews the token, ADR-005).
 
 ## Decision
 
@@ -57,7 +57,8 @@ the session is dead. That is rare, since Vector renews the token (ADR-005).
   `not_authenticated`, `session_expired`, `login_rejected`, `login_blocked`,
   `login_failed`, `rate_limited`, `api_error`, `contract`, `validation` or
   `unexpected`. The CLI writes `{ error, type, exitCode }` on STDERR, and the MCP
-  returns `{ error, type }` with `isError: true`. A `type` is never renamed.
+  returns `{ error, type }` with `isError: true`. A `type` is never renamed; an
+  unknown one means `unexpected`.
 - **`NEMO_HOME` overrides `~/.nemo`** (token, audit log, latch). A path that is
   not absolute is a `validation` error: a cron changes its working directory.
 - **The rails stay.** Each invocation makes ONE `SignIn` attempt, never retried.
@@ -65,16 +66,14 @@ the session is dead. That is rare, since Vector renews the token (ADR-005).
   anywhere. The tasks stay in `@albertomarturelo/nemo-core/cli`, and **no MCP tool
   gains a password source**. The audit records
   `source: prompt|env|stdin|browser`, and a latch refusal is `result: 'blocked'`.
-- **The agent posture is documented** in `docs/integrations/grok-bot/`: a prompt
-  and skills, with the password handed over through the platform's take-control
-  terminal into a `0600` file that only `--password-stdin` reads, and
-  `NEMO_HOME=/workspace/.nemo`. The pack tracks the released CLI and is updated
-  in the same PR as any change to a command, flag or error `type`.
+- **The agent posture lives in `docs/integrations/grok-bot/`** (prompt + skills):
+  the password goes through the platform's take-control terminal into a `0600`
+  file read only by `--password-stdin`, with `NEMO_HOME=/workspace/.nemo`. A PR
+  that changes a command, flag or error `type` updates the pack too.
 
 ## Alternatives Considered
 
-1. **Keep ADR-006 as is (prompt or browser only).** Rejected: no agent can run
-   either.
+1. **Keep ADR-006 as is.** Rejected: no agent can use the prompt or the browser.
 2. **`--password <value>` or a positional argument.** Rejected: it shows up in
    `ps`, the shell history and the agent's transcript.
 3. **A default variable (`NEMO_PASSWORD`, read implicitly).** Rejected: it can
@@ -89,12 +88,13 @@ the session is dead. That is rare, since Vector renews the token (ADR-005).
 ## Consequences
 
 - **Easier:** one idempotent line for an agent, cron or CI run, with no TTY:
-  `nemo auth login --user <email> --password-stdin < <file>`. It signs in only
-  when the session is dead.
+  `nemo auth login --user <email> --password-stdin < <file>`.
 - **Harder:** the token file gains `username`, so a browser-login token is
   "unknown user" to a credential login. The error `type` is a contract to keep.
 - **Residual risk (the operator accepts it):** whoever compromises or
   prompt-injects the agent gets the full password. An env var is inherited by the
-  agent's children until the CLI deletes it. Use it only for your own account.
+  agent's children until the CLI deletes it, and the Grok Bot pack keeps the
+  password at rest in a `0600` file on the agent's disk (nemo never writes it).
+  Use it only for your own account.
 - **Obligations:** fake-env, fake-stdin and fake-HTTP tests for every refusal
-  path. CI keeps guarding that `packages/mcp` never imports `/cli`.
+  path; CI keeps guarding that `packages/mcp` never imports `/cli`.
