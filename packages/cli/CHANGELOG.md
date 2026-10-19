@@ -4,6 +4,12 @@ All notable changes to the CLI package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- The package now ships its `LICENSE` (MIT), as core and the MCP server do.
+
 ## [0.3.0] — 2026-10-16
 
 ### Added
