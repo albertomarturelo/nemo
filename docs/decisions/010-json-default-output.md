@@ -3,7 +3,9 @@
 ## Status
 
 Accepted — 2026-07-03. Ported from the Python `nemo-cli` (`--json` envelope as the
-downstream contract) and the `sii` project's ADR-012.
+downstream contract) and the `sii` project's ADR-012. Amended by
+[`non-interactive-login`](2026-10-19-non-interactive-login.md): an error also
+carries a stable `type` (CLI `{ error, type, exitCode }`, MCP `{ error, type }`).
 
 ## Context
 
