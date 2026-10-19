@@ -68,7 +68,9 @@ server's `env`. The CLI reads the same variable, so set it for both.
 `auth_login` waits up to 5 minutes for you to finish. If your MCP client gives
 up on the call sooner, the sign-in still completes and the token is still
 cached: ask again and the session is active. The session is shared with the
-`nemo` CLI, so `nemo auth login` works too.
+`nemo` CLI, so `nemo auth login` works too. One catch: nemo never learns which
+account a browser sign-in used, so over a live `auth_login` session
+`nemo auth login` asks you to run `nemo auth logout` first.
 
 ## See also
 

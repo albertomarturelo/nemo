@@ -3,7 +3,7 @@
 // subpath `@albertomarturelo/nemo-core/cli` (see ../cli.ts) — the MCP server imports the
 // main barrel and must never be able to wire a task that takes credentials (ADR-006).
 import { BROWSER_LOGIN_TIMEOUT_MS, PROACTIVE_REFRESH_SECONDS } from '../config/index.js';
-import { LoginFailedError } from '../errors/index.js';
+import { LoginFailedError, ValidationError } from '../errors/index.js';
 import { isExpiringWithin } from '../auth/jwt.js';
 import { signIn } from '../auth/service.js';
 import { audited } from '../audit/index.js';
@@ -45,28 +45,66 @@ export async function logout(rt: Runtime): Promise<LogoutResult> {
   });
 }
 
+/** Where a credential sign-in's password comes from. The audit receipt records it,
+ *  never the value (ADR `non-interactive-login`). */
+export type LoginSource = 'prompt' | 'env' | 'stdin';
+
+export interface LoginRequest {
+  username: string;
+  source: LoginSource;
+  /** Produces the password. Called only when a sign-in is actually needed, so a live
+   *  session never prompts for one, nor reads it from its source. */
+  password: () => Promise<string>;
+}
+
 export interface LoginResult {
   authenticated: true;
   username: string;
+  reason: 'signed_in' | 'already_authenticated';
 }
 
-/** Sign in with explicit credentials and cache the resulting bearer token. Password-
- *  taking, hence CLI-only (re-exported from `@albertomarturelo/nemo-core/cli`, ADR-006). The
- *  username is echoed back for the receipt; the password never leaves this call. */
-export async function login(
-  rt: Runtime,
-  credentials: { username: string; password: string },
-): Promise<LoginResult> {
+/** Sign in with explicit credentials and cache the bearer token with its owner.
+ *  Password-taking, hence CLI-only (re-exported from `@albertomarturelo/nemo-core/cli`,
+ *  ADR-006). Idempotent, so an unattended caller can run it every time: a cached token
+ *  for the same user outside the proactive-refresh window answers
+ *  `already_authenticated` without asking for the password. A live token for another
+ *  account, or one whose owner was never recorded, is refused rather than silently
+ *  answered as someone else (ADR `non-interactive-login`). One `SignIn`, never retried;
+ *  the password never leaves this call. */
+export async function login(rt: Runtime, request: LoginRequest): Promise<LoginResult> {
+  const username = request.username.trim();
+  if (!username) throw new ValidationError('An account email is required to sign in.');
+
+  const cached = await rt.tokens.get();
+  if (cached !== null && !isExpiringWithin(cached, PROACTIVE_REFRESH_SECONDS, rt.clock.now())) {
+    const owner = await rt.tokens.username();
+    if (owner !== null && sameAccount(owner, username)) {
+      return { authenticated: true, username, reason: 'already_authenticated' };
+    }
+    throw new ValidationError(
+      owner === null
+        ? 'A session whose account was not recorded (a browser sign-in?) is active — run `nemo auth logout`, then sign in.'
+        : 'A session for another account is active — run `nemo auth logout`, then sign in.',
+    );
+  }
+
   return audited(
     rt,
     'auth.login',
     async () => {
-      const token = await signIn(rt, credentials.username, credentials.password);
-      await rt.tokens.set(token);
-      return { authenticated: true as const, username: credentials.username };
+      const password = await request.password();
+      if (!password) throw new LoginFailedError('Empty password — no sign-in attempted.');
+      const token = await signIn(rt, username, password);
+      await rt.tokens.set(token, username);
+      return { authenticated: true as const, username, reason: 'signed_in' as const };
     },
-    { username: credentials.username },
+    { username, source: request.source },
   );
+}
+
+/** Emails compare case-insensitively: `Me@Mail.cl` and `me@mail.cl` are one account. */
+function sameAccount(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
 export interface BrowserLoginResult {
@@ -95,9 +133,10 @@ export async function browserLogin(rt: Runtime): Promise<BrowserLoginResult> {
     'auth.login',
     async () => {
       const token = await browser.signIn({ timeoutMs: BROWSER_LOGIN_TIMEOUT_MS });
-      await rt.tokens.set(token);
+      // The email is typed on Vector's page, so the owner stays unknown.
+      await rt.tokens.set(token, null);
       return { authenticated: true as const, reason: 'signed_in' as const };
     },
-    { method: 'browser' },
+    { source: 'browser' },
   );
 }

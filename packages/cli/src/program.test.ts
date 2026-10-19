@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { testing } from '@albertomarturelo/nemo-core';
 import { buildProgram } from './program.js';
-import { exitCodeFor, renderError } from './io.js';
-import { captureStdout, scriptedPrompters } from './test-helpers.js';
+import { asDomainError, exitCodeFor, isCommanderExit, renderError } from './io.js';
+import { captureStdout, fakeInputs, scriptedPrompters } from './test-helpers.js';
 
 const { FakeBrowserLogin, FakeHttpClient, MemoryTokenStore, fakeRuntime } = testing;
 
@@ -17,8 +17,28 @@ function run(
   runtime: ReturnType<typeof fakeRuntime>,
   argv: string[],
   prompters = scriptedPrompters({}),
+  inputs = fakeInputs(),
 ) {
-  return buildProgram(runtime, prompters).parseAsync(['node', 'nemo', ...argv]);
+  return buildProgram(runtime, prompters, inputs).parseAsync(['node', 'nemo', ...argv]);
+}
+
+/** Run, expecting a failure; return it rendered as the STDERR JSON main would print. */
+async function failure(
+  runtime: ReturnType<typeof fakeRuntime>,
+  argv: string[],
+  inputs = fakeInputs(),
+): Promise<{ error: string; type: string; exitCode: number }> {
+  const caught: unknown = await run(runtime, argv, scriptedPrompters({}), inputs).then(
+    () => {
+      throw new Error(`expected \`${argv.join(' ')}\` to fail`);
+    },
+    (e: unknown) => e,
+  );
+  return JSON.parse(renderError(asDomainError(caught))) as {
+    error: string;
+    type: string;
+    exitCode: number;
+  };
 }
 
 describe('nemo CLI', () => {
@@ -128,8 +148,158 @@ describe('nemo CLI', () => {
       ['auth', 'login', '--user', 'me@mail.cl'],
       scriptedPrompters({ hidden: 'secret' }),
     );
-    expect(JSON.parse(cap.text())).toEqual({ authenticated: true, username: 'me@mail.cl' });
+    expect(JSON.parse(cap.text())).toEqual({
+      authenticated: true,
+      username: 'me@mail.cl',
+      reason: 'signed_in',
+    });
     expect(await tokens.get()).toBe('minted');
+  });
+
+  describe('unattended login (ADR non-interactive-login)', () => {
+    const signIn = (): InstanceType<typeof FakeHttpClient> =>
+      new FakeHttpClient((req) => {
+        expect(req.body).toEqual({ userName: 'me@mail.cl', password: 'synthetic-pw' });
+        return { json: { token: FRESH } };
+      });
+
+    it('--password-env signs in, then removes the variable from the environment', async () => {
+      const http = signIn();
+      const tokens = new MemoryTokenStore();
+      const inputs = fakeInputs({ env: { NEMO_PW: 'synthetic-pw', OTHER: 'kept' } });
+      cap = captureStdout();
+      await run(
+        fakeRuntime({ http, tokens }),
+        ['auth', 'login', '--user', 'me@mail.cl', '--password-env', 'NEMO_PW'],
+        scriptedPrompters({}),
+        inputs,
+      );
+      expect(JSON.parse(cap.text())).toMatchObject({ reason: 'signed_in' });
+      expect(cap.text()).not.toContain('synthetic-pw');
+      expect(inputs.env).toEqual({ OTHER: 'kept' });
+      expect(await tokens.username()).toBe('me@mail.cl');
+    });
+
+    it('--password-stdin signs in from one line of stdin', async () => {
+      const http = signIn();
+      const tokens = new MemoryTokenStore();
+      cap = captureStdout();
+      await run(
+        fakeRuntime({ http, tokens }),
+        ['auth', 'login', '--user', 'me@mail.cl', '--password-stdin'],
+        scriptedPrompters({}),
+        fakeInputs({ stdin: 'synthetic-pw' }),
+      );
+      expect(JSON.parse(cap.text())).toMatchObject({ reason: 'signed_in' });
+      expect(http.calls).toHaveLength(1);
+    });
+
+    it('a live session for the same user sends nothing and never reads stdin', async () => {
+      const http = new FakeHttpClient();
+      const inputs = fakeInputs({ stdin: 'synthetic-pw' });
+      cap = captureStdout();
+      await run(
+        fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH, 'me@mail.cl') }),
+        ['auth', 'login', '--user', 'me@mail.cl', '--password-stdin'],
+        scriptedPrompters({}),
+        inputs,
+      );
+      expect(JSON.parse(cap.text())).toMatchObject({ reason: 'already_authenticated' });
+      expect(http.calls).toHaveLength(0);
+      expect(inputs.stdinReads).toBe(0);
+    });
+
+    it('a live session for another user is a validation error', async () => {
+      const http = new FakeHttpClient();
+      const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH, 'other@mail.cl') });
+      const env = { NEMO_PW: 'synthetic-pw' };
+      const res = await failure(
+        rt,
+        ['auth', 'login', '--user', 'me@mail.cl', '--password-env', 'NEMO_PW'],
+        fakeInputs({ env }),
+      );
+      expect(res).toMatchObject({ type: 'validation', exitCode: 1 });
+      expect(res.error).toContain('nemo auth logout');
+      expect(http.calls).toHaveLength(0);
+    });
+
+    it.each([
+      [
+        'an invalid variable name',
+        ['--user', 'me@mail.cl', '--password-env', 'nemo-pw'],
+        {},
+        'validation',
+      ],
+      [
+        'a missing variable',
+        ['--user', 'me@mail.cl', '--password-env', 'NEMO_PW'],
+        {},
+        'login_failed',
+      ],
+      [
+        'an empty variable',
+        ['--user', 'me@mail.cl', '--password-env', 'NEMO_PW'],
+        { env: { NEMO_PW: '' } },
+        'login_failed',
+      ],
+      ['empty stdin', ['--user', 'me@mail.cl', '--password-stdin'], { stdin: '' }, 'login_failed'],
+      [
+        'stdin on a terminal',
+        ['--user', 'me@mail.cl', '--password-stdin'],
+        { isTTY: true, stdin: 'synthetic-pw' },
+        'validation',
+      ],
+      [
+        '--password-env without --user',
+        ['--password-env', 'NEMO_PW'],
+        { env: { NEMO_PW: 'x' } },
+        'validation',
+      ],
+      ['--password-stdin without --user', ['--password-stdin'], { stdin: 'x' }, 'validation'],
+      [
+        'two sources',
+        ['--user', 'me@mail.cl', '--password-env', 'NEMO_PW', '--password-stdin'],
+        { env: { NEMO_PW: 'x' }, stdin: 'x' },
+        'validation',
+      ],
+      ['a source with --browser', ['--browser', '--password-stdin'], { stdin: 'x' }, 'validation'],
+    ])('refuses %s, sending nothing', async (_label, args, inputs, type) => {
+      const http = new FakeHttpClient(() => ({ json: { token: FRESH } }));
+      const browser = new FakeBrowserLogin(FRESH);
+      const res = await failure(
+        fakeRuntime({ http, browser }),
+        ['auth', 'login', ...args],
+        fakeInputs(inputs),
+      );
+      expect(res.type).toBe(type);
+      expect(res.error).not.toContain('synthetic-pw');
+      expect(http.calls).toHaveLength(0);
+      expect(browser.calls).toHaveLength(0);
+    });
+
+    it('an error names the variable, never its value', async () => {
+      const res = await failure(
+        fakeRuntime(),
+        ['auth', 'login', '--user', 'me@mail.cl', '--password-env', 'NEMO_PW'],
+        fakeInputs({ env: { NEMO_PW: '' } }),
+      );
+      expect(res.error).toContain('NEMO_PW');
+    });
+  });
+
+  describe('commander errors (ADR non-interactive-login)', () => {
+    it('an unknown option renders as type validation, exit 1', async () => {
+      const res = await failure(fakeRuntime(), ['auth', 'login', '--bogus']);
+      expect(res).toMatchObject({ type: 'validation', exitCode: 1 });
+      expect(res.error).toContain('--bogus');
+    });
+
+    it('--version is a commander exit, not an error', async () => {
+      cap = captureStdout();
+      const caught: unknown = await run(fakeRuntime(), ['--version']).catch((e: unknown) => e);
+      expect(isCommanderExit(caught)).toBe(true);
+      expect(cap.text().trim()).toBe(buildProgram(fakeRuntime()).version());
+    });
   });
 
   it('auth login --browser → signs in through the browser seam, never prompts', async () => {
@@ -161,12 +331,17 @@ describe('nemo CLI', () => {
     expect(await tokens.get()).toBeNull();
   });
 
-  it('auth login --browser --user → rejected before any browser opens', async () => {
+  it('auth login --browser --user → a validation error before any browser opens', async () => {
     const browser = new FakeBrowserLogin(FRESH);
-    const rt = fakeRuntime({ browser });
-    await expect(run(rt, ['auth', 'login', '--browser', '--user', 'me@mail.cl'])).rejects.toThrow(
-      /drop --user/,
-    );
+    const res = await failure(fakeRuntime({ browser }), [
+      'auth',
+      'login',
+      '--browser',
+      '--user',
+      'me@mail.cl',
+    ]);
+    expect(res).toMatchObject({ type: 'validation', exitCode: 1 });
+    expect(res.error).toMatch(/drop --user/);
     expect(browser.calls).toHaveLength(0);
   });
 

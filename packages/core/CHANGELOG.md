@@ -19,12 +19,29 @@ All notable changes to the core package are documented here. The format follows
   `ValidationError` for a relative path before touching any file.
   `FileTokenStore` and `FileAuditSink` take the directory as an optional
   constructor argument.
+- `LoginRequest` and `LoginSource` (`prompt` | `env` | `stdin`) on `./cli`.
 
 ### Changed
 
 - `new FileTokenStore()` and `new FileAuditSink()` with no argument now follow
   `NEMO_HOME`, and throw `ValidationError` when it is a relative path. Unset, they
   still use `~/.nemo`.
+- **Breaking:** `login` (on `./cli`) takes `{ username, source, password }`, where
+  `password` is a function called only when a sign-in is needed. It is
+  idempotent: a live cached token for the same user returns
+  `reason: 'already_authenticated'` without calling `SignIn`. A live token for
+  another or an unrecorded user throws `ValidationError`. `LoginResult` gains
+  `reason` (ADR `non-interactive-login`).
+- **Breaking:** the `TokenStore` seam records the token's owner. It gains
+  `username()`, and `set(token, username)` takes the owner (`null` = unknown).
+  Renewals keep it, and `browserLogin` records `null`. `FileTokenStore` writes
+  `{ token, username? }` with mode `0600`, and tightens a file written earlier.
+  `testing.MemoryTokenStore` takes an optional second constructor argument, the
+  owner.
+- The `auth.login` audit receipt carries `source` (`prompt`, `env`, `stdin`,
+  `browser`). `browserLogin`'s receipt had `method: 'browser'`.
+- With no cached token, the error says "Not signed in" instead of "Session
+  expired". Its type is still `not_authenticated`.
 
 ## [0.3.0] — 2026-10-16
 

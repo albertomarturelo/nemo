@@ -84,12 +84,31 @@ describe('instrumentsLocal', () => {
       expect(req.headers?.Authorization).toBe('Bearer renewed-token');
       return { json: ONE_ROW };
     });
-    const tokens = new MemoryTokenStore(FRESH);
+    const tokens = new MemoryTokenStore(FRESH, 'me@mail.cl');
     const rt = fakeRuntime({ http, tokens, clock: new FixedClock(0) });
 
     const page = await instrumentsLocal(rt);
     expect(page.total).toBe(1);
     expect(await tokens.get()).toBe('renewed-token');
+    // A renewal keeps the owner, so the next idempotent login still matches.
+    expect(await tokens.username()).toBe('me@mail.cl');
+  });
+
+  it('a proactive renewal keeps the token owner', async () => {
+    const http = new FakeHttpClient((req) =>
+      req.url.includes('/RefreshToken') ? { json: 'renewed-token' } : { json: ONE_ROW },
+    );
+    // A token already past its exp is inside the proactive window.
+    const expiring = (() => {
+      const b64 = (s: string): string => Buffer.from(s, 'utf8').toString('base64url');
+      return `${b64('{"alg":"none"}')}.${b64(JSON.stringify({ exp: 1 }))}.sig`;
+    })();
+    const tokens = new MemoryTokenStore(expiring, 'me@mail.cl');
+    const rt = fakeRuntime({ http, tokens, clock: new FixedClock(1_000_000_000_000) });
+
+    await instrumentsLocal(rt);
+    expect(await tokens.get()).toBe('renewed-token');
+    expect(await tokens.username()).toBe('me@mail.cl');
   });
 });
 

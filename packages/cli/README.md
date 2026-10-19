@@ -32,6 +32,8 @@ nemo cartera summary --human
 | Command                                                    | What it does                                              |
 | ---------------------------------------------------------- | --------------------------------------------------------- |
 | `nemo auth login [--user <email>]`                          | Sign in; cache the bearer token                            |
+| `nemo auth login --user <email> --password-env <VAR>`       | Unattended sign-in, password from a named env var          |
+| `nemo auth login --user <email> --password-stdin`           | Unattended sign-in, password from the first line of stdin  |
 | `nemo auth login --browser`                                 | Sign in on Vector's own page in a browser window (\*)       |
 | `nemo auth status`                                          | Session state (local read — never touches the network)     |
 | `nemo auth logout`                                          | Drop the cached token                                      |
@@ -86,12 +88,38 @@ cron job changes its working directory.
 
 ## Credentials
 
-The password is entered at a hidden prompt — never a flag, environment variable,
-or argument — held in memory for a single sign-in, then discarded. Only the
-resulting bearer token is cached, in a per-user file in the state directory. No
-credential ever reaches an AI model: the password-taking sign-in is exported only
-to this CLI, and the companion MCP server signs in only through the browser,
-where the password is typed into Vector's own page.
+The password comes from exactly one source, named on the command line:
+
+- **The hidden prompt** (the default), for a person at the keyboard.
+- **`--password-env <VAR>`**, for a cron job, CI or an agent. You name the
+  variable; there is no default name. The CLI removes it from its environment as
+  soon as it reads it, so nothing it starts inherits it.
+- **`--password-stdin`**, for the same uses: the first line of a pipe or a file
+  (`--password-stdin < file`). It refuses a terminal; there, use the prompt. If
+  no line arrives within 10 seconds it gives up (type `login_failed`) instead of
+  waiting on a pipe that never speaks.
+
+The password is never a flag value or an argument, so it stays out of the shell
+history and the process list. No source falls back to another. Both unattended
+sources need `--user`, and an error names the source, never the value.
+
+Every login is safe to repeat. If a live session for the same email is cached,
+`login` answers `"reason": "already_authenticated"` without reading the password
+or contacting Vector:
+
+```bash
+nemo auth login --user me@example.com --password-stdin < "$SECRET_FILE"
+```
+
+A live session for a different email is an error (type `validation`): run
+`nemo auth logout` first. A session from `--browser` counts as different, because
+the email is typed on Vector's page and nemo never learns it.
+
+The password is held in memory for a single sign-in, then discarded. Only the
+bearer token and its email are cached, in an owner-only file in the state
+directory. No credential ever reaches an AI model: the password-taking sign-in is
+exported only to this CLI, and the companion MCP server signs in only through the
+browser, where the password is typed into Vector's own page.
 
 ## See also
 

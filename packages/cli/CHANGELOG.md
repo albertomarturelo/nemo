@@ -10,12 +10,23 @@ All notable changes to the CLI package are documented here. The format follows
 
 - `NEMO_HOME` moves the state directory (token, audit log) to an absolute path.
   A relative one fails with type `validation`.
+- `nemo auth login --password-env <VAR>` and `--password-stdin`, for cron, CI and
+  agents. Both need `--user` and never fall back to another source. The variable
+  is removed from the environment once read, and stdin is refused when it is a
+  terminal and given up on after 10 s of silence (ADR `non-interactive-login`).
 
 ### Changed
 
 - A failure in JSON mode is now `{ "error", "type", "exitCode" }` on STDERR,
   where it was `{ "error" }`. Exit codes are unchanged. Decide by `type`, which
   is never renamed (ADR `non-interactive-login`).
+- `nemo auth login` is idempotent. A live session for the same email answers
+  `"reason": "already_authenticated"` without asking for the password, and a live
+  session for another email (or one from `--browser`) is a `validation` error that
+  asks for `nemo auth logout` first. The result gains `reason`.
+- A usage error (unknown option, missing argument) is now `{ error, type:
+  "validation" }` on STDERR like any other failure. `--browser --user` is a
+  `validation` error (exit 1), where it was a login failure (exit 3).
 
 ### Fixed
 

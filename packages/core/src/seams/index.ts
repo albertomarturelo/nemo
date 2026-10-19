@@ -39,7 +39,14 @@ export interface HttpClient {
  *  The token is the ONLY thing that ever lands on disk — credentials never do (ADR-006). */
 export interface TokenStore {
   get(): Promise<string | null>;
-  set(token: string): Promise<void>;
+  /** The account the cached token belongs to, recorded by a credential sign-in so a
+   *  later one can tell "same user, already signed in" from "another account"
+   *  (ADR `non-interactive-login`). `null` when unknown: a browser sign-in (the
+   *  email is typed on Vector's page) or a token cached before this was recorded. */
+  username(): Promise<string | null>;
+  /** Cache a token for `username` (`null` = unknown). A renewal passes the current
+   *  owner through, so refreshing never forgets whose session it is. */
+  set(token: string, username: string | null): Promise<void>;
   clear(): Promise<void>;
 }
 

@@ -4,18 +4,27 @@
 import { Command } from 'commander';
 import type { Runtime } from '@albertomarturelo/nemo-core';
 import { setOutputMode, withOutputFlags } from './io.js';
-import { nodePrompters, type Prompters } from './prompt.js';
+import { nodeInputs, nodePrompters, type ProcessInputs, type Prompters } from './prompt.js';
 // Surfaces register their subtree from ONE append-only line each (ADR-007).
 import { registerAuth } from './commands/auth.js';
 import { registerInstruments } from './commands/instruments.js';
 import { registerCartera } from './commands/cartera.js';
 
-export function buildProgram(runtime: Runtime, prompters: Prompters = nodePrompters): Command {
+export function buildProgram(
+  runtime: Runtime,
+  prompters: Prompters = nodePrompters,
+  inputs: ProcessInputs = nodeInputs,
+): Command {
   const program = new Command();
   program
     .name('nemo')
     .description('CLI for the Vector Capital broker portal (Chile).')
-    .version('0.3.0');
+    .version('0.3.0')
+    // A usage error (unknown option, missing argument) is thrown instead of printed,
+    // so main renders it like any other failure: `{ error, type: 'validation' }`.
+    // Subcommands inherit both settings, so they must precede the register calls.
+    .exitOverride()
+    .configureOutput({ outputError: () => {} });
   // Output is JSON by default (the @albertomarturelo/nemo-core data contract); `--human` for text.
   withOutputFlags(program);
 
@@ -23,7 +32,7 @@ export function buildProgram(runtime: Runtime, prompters: Prompters = nodePrompt
     setOutputMode(actionCommand.optsWithGlobals().human ? 'human' : 'json');
   });
 
-  registerAuth(program, runtime, prompters);
+  registerAuth(program, runtime, prompters, inputs);
   registerInstruments(program, runtime);
   registerCartera(program, runtime);
 

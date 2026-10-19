@@ -72,5 +72,6 @@ Trade a still-valid token for a fresh one (ADR-005). No credentials involved.
 - The token's `exp` claim is read (signature-unverified) to drive proactive
   renewal within `PROACTIVE_REFRESH_SECONDS` (`config`). The server remains the
   authority; the reactive `401` path is the real gate.
-- Only the token is ever persisted (`~/.nemo/token.json`); the password is held in
-  memory for one `SignIn`, then discarded (ADR-006).
+- Only the token is ever persisted (`token.json` in the state directory, next to
+  the email it was minted for); the password is held in memory for one `SignIn`,
+  then discarded (ADR-006, ADR `non-interactive-login`).

@@ -4,4 +4,4 @@
 // must never wire a task that takes credentials (ADR-006). The terminal CLI, which
 // prompts for the password with echo muted, imports this subpath instead.
 export { login } from './tasks/auth.js';
-export type { LoginResult } from './tasks/auth.js';
+export type { LoginRequest, LoginResult, LoginSource } from './tasks/auth.js';
