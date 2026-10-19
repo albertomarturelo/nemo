@@ -39,3 +39,46 @@ export class ApiError extends NemoError {
 /** A parser could not find the shape it expected in a portal response — the wire
  *  contract drifted. Never retry; surface it so the contract can be re-observed. */
 export class ContractError extends NemoError {}
+
+/** The command or the machine is misconfigured (e.g. a relative `NEMO_HOME`).
+ *  Nothing was sent to the portal. Exit code 1. */
+export class ValidationError extends NemoError {}
+
+/** The stable error kind a caller decides on — never the message text (ADR
+ *  `non-interactive-login`). A value is never renamed; a caller treats one it does
+ *  not know as `unexpected`. `login_rejected` / `login_blocked` are reserved for the
+ *  rejection latch, which raises them once it lands. */
+export type ErrorType =
+  | 'not_authenticated'
+  | 'session_expired'
+  | 'login_rejected'
+  | 'login_blocked'
+  | 'login_failed'
+  | 'rate_limited'
+  | 'api_error'
+  | 'contract'
+  | 'validation'
+  | 'unexpected';
+
+export interface ClassifiedError {
+  type: ErrorType;
+  /** The error's message verbatim (CONVENTIONS: broker messages pass through). */
+  message: string;
+}
+
+/** Map any thrown value to its stable `type`, for the CLI's STDERR JSON, the MCP's
+ *  error result, and any embedder. Subtypes are checked before their parents. */
+export function classifyError(error: unknown): ClassifiedError {
+  const message = error instanceof Error ? error.message : String(error);
+  return { type: typeOf(error), message };
+}
+
+function typeOf(error: unknown): ErrorType {
+  if (error instanceof SessionExpiredError) return 'session_expired';
+  if (error instanceof NotAuthenticatedError) return 'not_authenticated';
+  if (error instanceof LoginFailedError) return 'login_failed';
+  if (error instanceof ApiError) return error.status === 429 ? 'rate_limited' : 'api_error';
+  if (error instanceof ContractError) return 'contract';
+  if (error instanceof ValidationError) return 'validation';
+  return 'unexpected';
+}

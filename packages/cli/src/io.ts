@@ -1,7 +1,11 @@
 // Output + error→exit-code mapping for the CLI. The broker's messages pass through
 // unchanged (CONVENTIONS: opaque translations waste the user's time).
 import type { Command } from 'commander';
-import { LoginFailedError, NotAuthenticatedError } from '@albertomarturelo/nemo-core';
+import {
+  classifyError,
+  LoginFailedError,
+  NotAuthenticatedError,
+} from '@albertomarturelo/nemo-core';
 
 // JSON is the DEFAULT output: the CLI is a faithful façade over the @albertomarturelo/nemo-core
 // library contract (tasks return plain, JSON-serializable objects), so driving it via
@@ -49,6 +53,11 @@ export function exitCodeFor(error: unknown): number {
   return 1;
 }
 
-export function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+/** The STDERR line for a failure. `--human` gets the bare message; JSON mode (the
+ *  default) gets `{ error, type, exitCode }`, so an unattended caller decides by the
+ *  stable `type`, never by the text (ADR `non-interactive-login`). */
+export function renderError(error: unknown): string {
+  const { type, message } = classifyError(error);
+  if (isHumanMode()) return message;
+  return JSON.stringify({ error: message, type, exitCode: exitCodeFor(error) });
 }

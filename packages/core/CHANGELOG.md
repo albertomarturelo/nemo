@@ -4,6 +4,22 @@ All notable changes to the core package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `classifyError` and the `ErrorType` union: every error maps to a stable `type`
+  (`not_authenticated`, `session_expired`, `login_failed`, `rate_limited`,
+  `api_error`, `contract`, `validation`, `unexpected`; `login_rejected` and
+  `login_blocked` are reserved). A `type` is never renamed (ADR
+  `non-interactive-login`).
+- `ValidationError`, for a misconfigured command or machine.
+- `NEMO_HOME`: an absolute path that replaces `~/.nemo` for the token and the
+  audit log. `resolveNemoDir` on `./node` resolves it; `createNodeRuntime` raises
+  `ValidationError` for a relative path before touching any file.
+  `FileTokenStore` and `FileAuditSink` take the directory as an optional
+  constructor argument.
+
 ## [0.3.0] — 2026-10-16
 
 ### Added

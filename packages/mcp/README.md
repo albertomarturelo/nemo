@@ -51,8 +51,10 @@ claude mcp add nemo -- npx -y @albertomarturelo/nemo-mcp
 | `cartera_saldo`             | Cash balance per caja at a date, valued in one currency         |
 
 Resources: `nemo://session` (local session state) and `nemo://config` (the
-portal base URL and observed endpoints). Every tool returns JSON; a portal error
-comes back as an `isError` result with Vector's message unchanged.
+portal base URL and observed endpoints). Every tool returns JSON. A failure comes
+back as an `isError` result whose text is `{ "error", "type" }`: the message is
+Vector's, unchanged, and `type` is a stable kind (`not_authenticated`,
+`session_expired`, `rate_limited`, `api_error`, …) that never changes name.
 
 ## Sign-in and credentials
 
@@ -60,6 +62,8 @@ No tool takes a password or a username. `auth_login` opens a browser window at
 Vector's own sign-in page; you type your credentials **there**, and the server
 keeps only the bearer token from the portal's response, cached in a per-user
 file under `~/.nemo/`. The password never reaches the model or this process.
+To keep the state somewhere else, set `NEMO_HOME` to an absolute path in the
+server's `env`. The CLI reads the same variable, so set it for both.
 
 `auth_login` waits up to 5 minutes for you to finish. If your MCP client gives
 up on the call sooner, the sign-in still completes and the token is still

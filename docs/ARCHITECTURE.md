@@ -67,7 +67,8 @@ portal, the real filesystem, or the wall clock:
   inject a route table). Vector is a plain JSON REST API, so this is a thin HTTP
   client — no browser / Playwright.
 - `TokenStore` — persist + read the cached bearer token (default: a JSON file
-  under `~/.nemo/`). The token is the only thing that ever lands on disk.
+  in the state directory, `~/.nemo/` or an absolute `NEMO_HOME`). The token is
+  the only secret that ever lands on disk.
 - `Clock` — time, for testable JWT-exp math and pacing.
 - `AuditSink` — append the JSONL receipt (default: fs append; secret-looking keys
   dropped).
@@ -84,7 +85,7 @@ centralizing the auth-renewal rails — not full hexagonal ceremony (ADR-003).
 | --- | --- | --- |
 | `config` | Base URL + endpoint paths + refresh window (single source of truth) | Done |
 | `seams` | `HttpClient` / `TokenStore` / `Clock` / `AuditSink` interfaces + `Runtime`; optional `BrowserLogin` (wired by both composition roots) | Done |
-| `errors` | `NotAuthenticated` / `SessionExpired` / `LoginFailed` / `ApiError` / `ContractError` | Done |
+| `errors` | `NotAuthenticated` / `SessionExpired` / `LoginFailed` / `ApiError` / `ContractError` / `ValidationError` + `classifyError` (the stable `type`) | Done |
 | `auth/jwt` | Signature-unverified `exp` peek for proactive renewal | Done |
 | `auth/service` | `signIn` + `refreshToken` bootstrap calls over the HTTP seam | Done |
 | `auth/session` | `request()` — the single authenticated HTTP path (proactive + reactive renew) | Done |
@@ -94,9 +95,36 @@ centralizing the auth-renewal rails — not full hexagonal ceremony (ADR-003).
 | `tasks/instruments` (intl) | `instrumentsInternational` — US-listed assets; same `{ market, page, pageSize, total, items }` shape, wire envelope is `{ items, totalCount }` | Done |
 | `tasks/cartera` | Cash movements (classified + aggregated) + holdings summary (P&L, totals by classification) | Done |
 | `tasks/cartera` (saldo) | `carteraSaldo` — standing cash balance per caja as of a date; only `montoConvertido` totals | Done |
-| `adapters/node` | `FetchHttpClient` / `FileTokenStore` / `SystemClock` / `FileAuditSink` + `PlaywrightBrowserLogin` (lazy `playwright`) | Done |
+| `adapters/node` | `FetchHttpClient` / `FileTokenStore` / `SystemClock` / `FileAuditSink` + `PlaywrightBrowserLogin` (lazy `playwright`); `resolveNemoDir` (`NEMO_HOME` or `~/.nemo`) | Done |
 | `adapters/fake` | In-memory fakes for the four seams (`testing`) | Done |
 | `audit` | `audited()` wrapper — one receipt per task | Done |
+
+## Error contract
+
+Every failure carries a stable `type` from `classifyError` (core), so a caller
+decides by it and never by the message text (ADR `non-interactive-login`). The
+message itself passes through verbatim.
+
+- **CLI:** in JSON mode, STDERR gets `{ "error", "type", "exitCode" }`. `--human`
+  gets the bare message.
+- **MCP:** a failing tool returns `{ "error", "type" }` as its text, with
+  `isError: true`. An input that fails the zod schema is the SDK's own error
+  text, not this shape.
+- **Embedder:** `classifyError(e)` returns `{ type, message }`.
+
+A `type` is never renamed. A caller treats one it does not know as `unexpected`.
+
+| `type` | Raised by | CLI exit |
+| --- | --- | --- |
+| `not_authenticated` | No cached token (`NotAuthenticatedError`) | 2 |
+| `session_expired` | Renewal failed (`SessionExpiredError`) | 2 |
+| `login_failed` | The sign-in failed (`LoginFailedError`) | 3 |
+| `login_rejected`, `login_blocked` | Reserved for the rejection latch (ADR `non-interactive-login`); not raised yet | 3 |
+| `rate_limited` | A portal `429` (`ApiError`) | 1 |
+| `api_error` | Any other portal non-2xx (`ApiError`) | 1 |
+| `contract` | The response shape drifted (`ContractError`) | 1 |
+| `validation` | Bad configuration, e.g. a relative `NEMO_HOME` (`ValidationError`) | 1 |
+| `unexpected` | Anything else (a bug) | 1 |
 
 ## Data flow
 

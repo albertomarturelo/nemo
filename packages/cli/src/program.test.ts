@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { testing } from '@albertomarturelo/nemo-core';
 import { buildProgram } from './program.js';
-import { exitCodeFor } from './io.js';
+import { exitCodeFor, renderError } from './io.js';
 import { captureStdout, scriptedPrompters } from './test-helpers.js';
 
 const { FakeBrowserLogin, FakeHttpClient, MemoryTokenStore, fakeRuntime } = testing;
@@ -277,5 +277,36 @@ describe('nemo CLI', () => {
       version: string;
     };
     expect(buildProgram(fakeRuntime()).version()).toBe(pkg.version);
+  });
+
+  describe('a failure on STDERR (ADR non-interactive-login)', () => {
+    it('renders { error, type, exitCode } in JSON mode', async () => {
+      const error: unknown = await run(fakeRuntime(), ['instruments', 'local']).catch(
+        (e: unknown) => e,
+      );
+      expect(JSON.parse(renderError(error))).toEqual({
+        error: expect.stringContaining('nemo auth login') as unknown,
+        type: 'not_authenticated',
+        exitCode: 2,
+      });
+    });
+
+    it('a portal 429 is rate_limited (exit 1), with the body verbatim', async () => {
+      const http = new FakeHttpClient(() => ({ status: 429, text: 'Too Many Requests' }));
+      const rt = fakeRuntime({ http, tokens: new MemoryTokenStore(FRESH) });
+      const error: unknown = await run(rt, ['instruments', 'local']).catch((e: unknown) => e);
+      const rendered = JSON.parse(renderError(error)) as Record<string, unknown>;
+      expect(rendered).toMatchObject({ type: 'rate_limited', exitCode: 1 });
+      expect(rendered.error).toContain('Too Many Requests');
+    });
+
+    it('--human renders the bare message', async () => {
+      const error: unknown = await run(fakeRuntime(), ['instruments', 'local', '--human']).catch(
+        (e: unknown) => e,
+      );
+      const rendered = renderError(error);
+      expect(rendered).toContain('nemo auth login');
+      expect(rendered.startsWith('{')).toBe(false);
+    });
   });
 });

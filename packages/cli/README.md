@@ -61,11 +61,34 @@ nemo cartera summary | jq '.totals'
 Exit codes: `0` success, `2` not authenticated (including an expired session),
 `3` login failed, `1` anything else.
 
+Errors go to STDERR. In JSON mode (the default) an error is one object, and a
+script decides by its `type`, never by the message text:
+
+```json
+{ "error": "<the message, verbatim>", "type": "session_expired", "exitCode": 2 }
+```
+
+The types are `not_authenticated`, `session_expired`, `login_failed`,
+`rate_limited`, `api_error`, `contract`, `validation` and `unexpected`. A type is
+never renamed; treat an unknown one as `unexpected`.
+
+## State directory
+
+The token and the audit log live in `~/.nemo/`. Set `NEMO_HOME` to an absolute
+path to move them, for example when a platform persists only one directory:
+
+```bash
+export NEMO_HOME=/workspace/.nemo
+```
+
+A relative path, or a quoted `~`, is refused with type `validation`, because a
+cron job changes its working directory.
+
 ## Credentials
 
 The password is entered at a hidden prompt — never a flag, environment variable,
 or argument — held in memory for a single sign-in, then discarded. Only the
-resulting bearer token is cached, in a per-user file under `~/.nemo/`. No
+resulting bearer token is cached, in a per-user file in the state directory. No
 credential ever reaches an AI model: the password-taking sign-in is exported only
 to this CLI, and the companion MCP server signs in only through the browser,
 where the password is typed into Vector's own page.

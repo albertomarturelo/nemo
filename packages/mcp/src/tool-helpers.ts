@@ -2,15 +2,20 @@
 // `register<Mod>Tools(server, runtime)`; they reuse these so the broker's error
 // messages surface verbatim and JSON results render uniformly across modules.
 
-import { NotAuthenticatedError } from '@albertomarturelo/nemo-core';
+import { classifyError, NotAuthenticatedError } from '@albertomarturelo/nemo-core';
 
-/** The core's message verbatim (CONVENTIONS). A missing/expired session also names
- *  the MCP's own remedy, since the core's wording points at the CLI. */
-const messageOf = (e: unknown): string => {
-  if (e instanceof NotAuthenticatedError)
-    return `${e.message} From here: call the auth_login tool.`;
-  return e instanceof Error ? e.message : String(e);
-};
+/** A failed task as an error result: `{ error, type }`, the CLI's STDERR shape minus
+ *  `exitCode` (ADR `non-interactive-login`). The core's message passes verbatim
+ *  (CONVENTIONS); a missing/expired session also names the MCP's own remedy, since
+ *  the core's wording points at the CLI. */
+function errorResult(e: unknown): ToolResult {
+  const { type, message } = classifyError(e);
+  const error =
+    e instanceof NotAuthenticatedError
+      ? `${message} From here: call the auth_login tool.`
+      : message;
+  return { content: [{ type: 'text', text: JSON.stringify({ error, type }) }], isError: true };
+}
 
 export interface ToolResult {
   // The MCP SDK's tool-callback return type carries a string index signature
@@ -20,13 +25,13 @@ export interface ToolResult {
   isError?: boolean;
 }
 
-/** Run a task and wrap its text as a tool result; domain errors come back as an
- *  error result carrying the message verbatim (CONVENTIONS). */
+/** Run a task and wrap its text as a tool result; a failure comes back as an
+ *  `errorResult`. */
 export async function toolText(fn: () => Promise<string>): Promise<ToolResult> {
   try {
     return { content: [{ type: 'text', text: await fn() }] };
   } catch (e) {
-    return { content: [{ type: 'text', text: messageOf(e) }], isError: true };
+    return errorResult(e);
   }
 }
 
@@ -36,6 +41,6 @@ export async function toolJson(fn: () => Promise<unknown>): Promise<ToolResult> 
   try {
     return { content: [{ type: 'text', text: JSON.stringify(await fn(), null, 2) }] };
   } catch (e) {
-    return { content: [{ type: 'text', text: messageOf(e) }], isError: true };
+    return errorResult(e);
   }
 }
