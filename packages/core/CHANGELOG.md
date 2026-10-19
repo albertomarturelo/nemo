@@ -20,6 +20,12 @@ All notable changes to the core package are documented here. The format follows
   `FileTokenStore` and `FileAuditSink` take the directory as an optional
   constructor argument.
 
+### Changed
+
+- `new FileTokenStore()` and `new FileAuditSink()` with no argument now follow
+  `NEMO_HOME`, and throw `ValidationError` when it is a relative path. Unset, they
+  still use `~/.nemo`.
+
 ## [0.3.0] — 2026-10-16
 
 ### Added

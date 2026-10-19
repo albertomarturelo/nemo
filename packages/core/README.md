@@ -56,5 +56,34 @@ Each task takes the `Runtime` as its first argument (the one pure helper,
 `login` is deliberately absent from this barrel: it takes a password, so it is
 exported only from `@albertomarturelo/nemo-core/cli` (ADR-006).
 
+## Errors
+
+Every task throws a `NemoError` subclass whose message is the portal's, verbatim.
+Decide by `classifyError(e).type`, never by the text. A `type` is never renamed,
+and one you do not know means `unexpected`.
+
+```ts
+import { classifyError } from '@albertomarturelo/nemo-core';
+
+try {
+  await carteraSummary(rt, {});
+} catch (e) {
+  const { type, message } = classifyError(e); // e.g. { type: 'session_expired', … }
+}
+```
+
+The types are `not_authenticated`, `session_expired`, `login_failed`,
+`rate_limited`, `api_error`, `contract`, `validation` and `unexpected`. The full
+table is in [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
+
+## State directory
+
+The Node defaults keep the token and the audit log in `~/.nemo/`, or in
+`NEMO_HOME` when it is set. `NEMO_HOME` must be an absolute path: otherwise
+`createNodeRuntime`, `FileTokenStore` and `FileAuditSink` throw a
+`ValidationError` before touching any file. Pass a directory to
+`FileTokenStore` / `FileAuditSink` to override it, and use `resolveNemoDir()`
+(on `./node`) to read the effective one.
+
 See [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) and the wire contracts
 under [`docs/vector-contract/`](../../docs/vector-contract/).
