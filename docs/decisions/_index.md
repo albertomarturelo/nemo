@@ -31,3 +31,4 @@ numbered ADRs keep their number forever. One table, ordered by date
 | 015 | [Publish `@albertomarturelo/nemo-cli` to npm; per-package release tags](015-publish-cli-npm-per-package-tags.md) | Accepted | 2026-07-26 |
 | adopt-cfd-upstream-revisions | [Adopt the CFD upstream revisions (Agent Skills, hooks, date-slug ADRs)](2026-10-15-adopt-cfd-upstream-revisions.md) | Accepted | 2026-10-15 |
 | mcp-browser-login | [Browser login — the MCP can start sign-in; the password goes only to Vector's page](2026-10-15-mcp-browser-login.md) | Accepted | 2026-10-15 |
+| non-interactive-login | [Non-interactive login — `--password-env` / `--password-stdin`, an idempotent login, a rejection latch](2026-10-19-non-interactive-login.md) | Accepted | 2026-10-19 |
