@@ -4,7 +4,8 @@
 // network default is a `fetch` client — no browser, no Playwright.
 import { appendFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
+import { ValidationError } from '../../errors/index.js';
 import type {
   AuditEntry,
   AuditSink,
@@ -15,11 +16,26 @@ import type {
   TokenStore,
 } from '../../seams/index.js';
 
-/** All local state lives here — the cached token and the audit log. Gitignored;
- *  never commit it (mirrors nemo-cli's per-user config dir). */
+/** The DEFAULT home of all local state — the cached token and the audit log — used
+ *  when `NEMO_HOME` is unset. Never commit it (mirrors nemo-cli's per-user config
+ *  dir). The effective directory is `resolveNemoDir()`. */
 export const NEMO_DIR = join(homedir(), '.nemo');
-const TOKEN_FILE = join(NEMO_DIR, 'token.json');
-const AUDIT_FILE = join(NEMO_DIR, 'audit.log');
+
+/** The state directory: `NEMO_HOME` when set, else `~/.nemo`. An agent platform may
+ *  persist a single path (Grok Bot keeps only `/workspace`), so the state must be
+ *  movable there (ADR `non-interactive-login`). A relative path is refused rather
+ *  than resolved: a cron changes its working directory, and a quoted `~` is never
+ *  expanded by the shell, so either would silently split the state in two. */
+export function resolveNemoDir(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): string {
+  const dir = env.NEMO_HOME;
+  if (dir === undefined || dir === '') return NEMO_DIR;
+  if (!isAbsolute(dir)) {
+    throw new ValidationError(`NEMO_HOME must be an absolute path, got "${dir}".`);
+  }
+  return dir;
+}
 
 /** Default network seam: Node global `fetch`, with a per-request timeout and JSON
  *  body encoding. The body is read once and cached so both `json()` and `text()`
@@ -56,11 +72,17 @@ export class FetchHttpClient implements HttpClient {
   }
 }
 
-/** Default token store: a JSON file `{ "token": "..." }` under `~/.nemo/`. */
+/** Default token store: a JSON file `{ "token": "..." }` in the state directory. */
 export class FileTokenStore implements TokenStore {
+  private readonly file: string;
+
+  constructor(dir: string = resolveNemoDir()) {
+    this.file = join(dir, 'token.json');
+  }
+
   async get(): Promise<string | null> {
     try {
-      const raw: unknown = JSON.parse(await readFile(TOKEN_FILE, 'utf8'));
+      const raw: unknown = JSON.parse(await readFile(this.file, 'utf8'));
       if (typeof raw !== 'object' || raw === null) return null;
       const token = (raw as Record<string, unknown>).token;
       return typeof token === 'string' && token ? token : null;
@@ -70,12 +92,12 @@ export class FileTokenStore implements TokenStore {
   }
 
   async set(token: string): Promise<void> {
-    await mkdir(dirname(TOKEN_FILE), { recursive: true });
-    await writeFile(TOKEN_FILE, JSON.stringify({ token }), 'utf8');
+    await mkdir(dirname(this.file), { recursive: true });
+    await writeFile(this.file, JSON.stringify({ token }), 'utf8');
   }
 
   async clear(): Promise<void> {
-    await rm(TOKEN_FILE, { force: true });
+    await rm(this.file, { force: true });
   }
 }
 
@@ -86,12 +108,19 @@ export class SystemClock implements Clock {
   }
 }
 
-/** Default audit sink: append one JSON line per receipt to `~/.nemo/audit.log`.
- *  Secret-looking keys are dropped before writing (never a plaintext secret). */
+/** Default audit sink: append one JSON line per receipt to `audit.log` in the state
+ *  directory. Secret-looking keys are dropped before writing (never a plaintext
+ *  secret). */
 export class FileAuditSink implements AuditSink {
+  private readonly file: string;
+
+  constructor(dir: string = resolveNemoDir()) {
+    this.file = join(dir, 'audit.log');
+  }
+
   async write(entry: AuditEntry): Promise<void> {
-    await mkdir(dirname(AUDIT_FILE), { recursive: true });
-    await appendFile(AUDIT_FILE, `${JSON.stringify(redact(entry))}\n`, 'utf8');
+    await mkdir(dirname(this.file), { recursive: true });
+    await appendFile(this.file, `${JSON.stringify(redact(entry))}\n`, 'utf8');
   }
 }
 

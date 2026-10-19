@@ -277,4 +277,24 @@ describe('@albertomarturelo/nemo-mcp server (in-memory client, fake runtime, no 
     expect(isError(res)).toBe(true);
     expect(toolText(res)).toContain('nemo auth login');
   });
+
+  it('a failing tool returns { error, type } — the CLI shape without exitCode', async () => {
+    const client = await connect(makeRuntime());
+    const res = await client.callTool({ name: 'instruments_local', arguments: {} });
+    expect(isError(res)).toBe(true);
+    const payload = JSON.parse(toolText(res)) as Record<string, unknown>;
+    expect(Object.keys(payload).sort()).toEqual(['error', 'type']);
+    expect(payload.type).toBe('not_authenticated');
+    expect(payload.error).toContain('auth_login');
+  });
+
+  it('a portal 429 comes back as type rate_limited', async () => {
+    const http = new testing.FakeHttpClient(() => ({ status: 429, text: 'Too Many Requests' }));
+    const client = await connect(
+      makeRuntime({ http, tokens: new testing.MemoryTokenStore(FRESH_TOKEN) }),
+    );
+    const res = await client.callTool({ name: 'instruments_local', arguments: {} });
+    expect(isError(res)).toBe(true);
+    expect(JSON.parse(toolText(res))).toMatchObject({ type: 'rate_limited' });
+  });
 });

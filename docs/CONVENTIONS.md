@@ -33,6 +33,12 @@ ADR-016). It starts with the load-bearing rules ported from the proven Python
   (`--human` for readable text). A command computes its result once and renders it
   through the shared `emit(data, humanFn)`. STDOUT carries only the result (JSON
   pipeable to `jq`); diagnostics go to STDERR (ADR-012).
+- **Every error carries a stable `type`, and a `type` is never renamed.**
+  `classifyError` (core) is the single mapping; the CLI writes `{ error, type,
+  exitCode }` to STDERR and the MCP returns `{ error, type }`. A new error class
+  gets a new `type` in the same change, plus its row in ARCHITECTURE's error
+  contract table. Callers decide by `type`, never by the message text (ADR
+  `non-interactive-login`).
 - **External dependencies sit behind injectable seams.** `HttpClient`,
   `TokenStore`, `Clock`, `AuditSink` are interfaces in `@albertomarturelo/nemo-core` with Node
   defaults; tests inject fakes so they never touch the real portal / filesystem /
@@ -98,7 +104,8 @@ ADR-016). It starts with the load-bearing rules ported from the proven Python
   entered at a hidden CLI prompt (`readline` with echo muted) — never a flag, env
   var, or argument (no shell-history / argv / process-list leak) — held in memory
   for one `signIn`, then discarded. Only the resulting bearer token is cached, in
-  a per-user JSON file under `~/.nemo/`. No MCP tool accepts a password (ADR-006).
+  a per-user JSON file in the state directory (`~/.nemo/`, or an absolute
+  `NEMO_HOME`). No MCP tool accepts a password (ADR-006).
 - **Never commit** `.env`, anything under `.nemo/`, or a real bearer token.
   `.gitignore` blocks them — re-verify before any `git add`.
 - **Audit every state-touching op** via the `AuditSink`: `{ ts, action, result,
@@ -117,6 +124,10 @@ ADR-016). It starts with the load-bearing rules ported from the proven Python
 - Reproduce CI conditions before pushing (no ambient credentials needed — there
   are none).
 - Mirror the `src/` tree: `<module>.test.ts` beside the module (vitest).
+- **The one filesystem exception: the Node default adapters themselves**
+  (`adapters/node`). They exist to touch the disk, so their tests use a fresh
+  `mkdtemp` directory, removed after each test, and never the real home
+  directory. Every other test uses the fakes.
 
 ## Naming
 

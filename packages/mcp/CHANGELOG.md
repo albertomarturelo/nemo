@@ -4,6 +4,18 @@ All notable changes to the MCP server package are documented here. The format
 follows [Keep a Changelog](https://keepachangelog.com/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `NEMO_HOME` moves the state directory (token, audit log) to an absolute path.
+
+### Changed
+
+- A failing tool's text is now `{ "error", "type" }` (JSON) instead of the bare
+  message, still with `isError: true`. The message is unchanged inside `error`
+  (ADR `non-interactive-login`).
+
 ## [0.3.0] — 2026-10-16
 
 ### Added

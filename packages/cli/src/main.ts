@@ -4,9 +4,12 @@
 // documented exit codes; their messages pass through unchanged.
 import { PlaywrightBrowserLogin, createNodeRuntime } from '@albertomarturelo/nemo-core/node';
 import { buildProgram } from './program.js';
-import { err, exitCodeFor, isHumanMode, messageOf } from './io.js';
+import { err, exitCodeFor, renderError, setOutputMode } from './io.js';
 
 async function main(): Promise<void> {
+  // The runtime is built before argv is parsed, so a failure there (a bad NEMO_HOME)
+  // would otherwise ignore `--human`.
+  if (process.argv.includes('--human')) setOutputMode('human');
   // The browser seam backs `auth login --browser` only; `playwright` loads lazily, so
   // no other command pays for it.
   const runtime = createNodeRuntime({ browser: new PlaywrightBrowserLogin() });
@@ -14,9 +17,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  const message = messageOf(error);
-  // Errors go to STDERR (STDOUT stays clean for piping). JSON mode (the default)
-  // wraps the message in `{ error }` so a consumer can parse failures too.
-  err(isHumanMode() ? message : JSON.stringify({ error: message }));
+  // Errors go to STDERR (STDOUT stays clean for piping), as JSON by default.
+  err(renderError(error));
   process.exitCode = exitCodeFor(error);
 });

@@ -35,8 +35,8 @@ export interface HttpClient {
   send(req: HttpRequest): Promise<HttpResponse>;
 }
 
-/** Persist the cached bearer token. Default: a JSON file under `~/.nemo/`. The token
- *  is the ONLY thing that ever lands on disk — credentials never do (ADR-006). */
+/** Persist the cached bearer token. Default: a JSON file in the state directory.
+ *  The token is the ONLY thing that ever lands on disk — credentials never do (ADR-006). */
 export interface TokenStore {
   get(): Promise<string | null>;
   set(token: string): Promise<void>;
@@ -59,7 +59,7 @@ export interface AuditEntry {
   [extra: string]: unknown;
 }
 
-/** The audit seam. Default: append JSONL to `~/.nemo/audit.log`. */
+/** The audit seam. Default: append JSONL to `audit.log` in the state directory. */
 export interface AuditSink {
   write(entry: AuditEntry): Promise<void>;
 }

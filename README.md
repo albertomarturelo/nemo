@@ -97,7 +97,9 @@ Salida **JSON por defecto** (pipeable a `jq`); `--human` para lectura.
 | `nemo cartera saldo [--account-id] [--currency] [--fecha]` | Saldo en caja por cuenta a una fecha, valorizado en una moneda, con total |
 
 Códigos de salida: `0` éxito, `2` sin sesión (o sesión expirada), `3` login
-fallido, `1` cualquier otro error.
+fallido, `1` cualquier otro error. En modo JSON, el error va a STDERR como
+`{ error, type, exitCode }`; un script decide por `type`, nunca por el texto. El
+estado vive en `~/.nemo/`, o en `NEMO_HOME` si lo defines (ruta absoluta).
 
 ### Vía MCP (Claude Desktop / Claude Code)
 

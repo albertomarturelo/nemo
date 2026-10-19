@@ -6,6 +6,17 @@ All notable changes to the CLI package are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `NEMO_HOME` moves the state directory (token, audit log) to an absolute path.
+  A relative one fails with type `validation`.
+
+### Changed
+
+- A failure in JSON mode is now `{ "error", "type", "exitCode" }` on STDERR,
+  where it was `{ "error" }`. Exit codes are unchanged. Decide by `type`, which
+  is never renamed (ADR `non-interactive-login`).
+
 ### Fixed
 
 - The package now ships its `LICENSE` (MIT), as core and the MCP server do.
