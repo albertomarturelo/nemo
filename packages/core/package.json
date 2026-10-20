@@ -1,6 +1,6 @@
 {
   "name": "@albertomarturelo/nemo-core",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "Shared broker-portal domain core (Vector Capital): config, contracts, auth/session, tasks, seams. A Node library; external side-effects (HTTP, token store, clock, audit) are injected via seams (ADR-003).",
   "license": "MIT",

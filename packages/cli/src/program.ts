@@ -19,7 +19,7 @@ export function buildProgram(
   program
     .name('nemo')
     .description('CLI for the Vector Capital broker portal (Chile).')
-    .version('0.3.0')
+    .version('0.4.0')
     // A usage error (unknown option, missing argument) is thrown instead of printed,
     // so main renders it like any other failure: `{ error, type: 'validation' }`.
     // Subcommands inherit both settings, so they must precede the register calls.

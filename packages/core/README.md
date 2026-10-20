@@ -42,7 +42,7 @@ Each task takes the `Runtime` as its first argument (the one pure helper,
 
 | Task | Returns |
 | --- | --- |
-| `authStatus` | Local session state (`active` / `expiring` / `expired` / `logged_out`) — never touches the network |
+| `authStatus` | Local session state (`active` / `expiring` / `expired` / `logged_out`) plus `loginBlocked`, the emails whose unattended sign-in the rejection latch refuses (since 0.4.0) — never touches the network |
 | `logout` | Drops the cached bearer token |
 | `browserLogin` | Signs in on Vector's own page in a headed browser and caches only the token; `{ authenticated, reason }`. Needs `runtime.browser` (`PlaywrightBrowserLogin` from `./node`, which needs the optional peer `playwright`) (since 0.3.0) |
 | `instrumentsLocal` | Chilean instruments, paged: `{ market, page, pageSize, total, items }` |
@@ -54,7 +54,11 @@ Each task takes the `Runtime` as its first argument (the one pure helper,
 | `carteraSaldo` | Standing cash balance per caja at a date, valued in one currency, plus a grand total (since 0.2.0) |
 
 `login` is deliberately absent from this barrel: it takes a password, so it is
-exported only from `@albertomarturelo/nemo-core/cli` (ADR-006).
+exported only from `@albertomarturelo/nemo-core/cli` (ADR-006). Since 0.4.0 it takes
+`{ username, source, password }`, where `password` is a function called only when
+a sign-in is needed, and it is idempotent over a live session of the same user.
+`unblock`, which lifts the rejection latch, lives on `./cli` too (since 0.4.0;
+ADR `non-interactive-login`).
 
 ## Errors
 
@@ -73,8 +77,9 @@ try {
 ```
 
 The types are `not_authenticated`, `session_expired`, `login_failed`,
-`rate_limited`, `api_error`, `contract`, `validation` and `unexpected`. The full
-table is in [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
+`rate_limited`, `api_error`, `contract`, `validation` and `unexpected`, plus
+`login_rejected` and `login_blocked` from the rejection latch (since 0.4.0). The
+full table is in [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
 
 ## State directory
 

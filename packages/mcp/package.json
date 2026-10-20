@@ -1,6 +1,6 @@
 {
   "name": "@albertomarturelo/nemo-mcp",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "MCP server (stdio) for the Vector Capital portal. Each tool/resource is a thin call into @albertomarturelo/nemo-core tasks (ADR-003). Browser sign-in (auth_login, no password argument) plus the CLI's read surface (ADR mcp-browser-login).",
   "license": "MIT",
