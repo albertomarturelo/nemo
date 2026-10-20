@@ -4,7 +4,7 @@ All notable changes to the MCP server package are documented here. The format
 follows [Keep a Changelog](https://keepachangelog.com/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.4.0] — 2026-10-19
 
 ### Added
 

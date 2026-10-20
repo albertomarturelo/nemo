@@ -25,7 +25,7 @@ const jsonResource = (uri: URL, value: unknown) => ({
 export function buildServer(runtime: Runtime): McpServer {
   // The version is advertised in the initialize handshake, so it must equal
   // package.json — server.test.ts guards it. `/release` bumps both together.
-  const server = new McpServer({ name: 'nemo', version: '0.3.0' });
+  const server = new McpServer({ name: 'nemo', version: '0.4.0' });
 
   // --- Resources: read-only context the model reads to orient ---
   server.registerResource(
