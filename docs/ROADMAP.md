@@ -46,9 +46,10 @@ each wired surface has its re-observed wire contract documented under
 - ✅ Publish `@albertomarturelo/nemo-cli` (npm) — `cli-v*` tag-triggered CD; release
   tags are package-prefixed (`core-v*` / `cli-v*`) so the two version
   independently (ADR-015).
-- ⬜ Publish `@albertomarturelo/nemo-mcp` (npm) — `mcp-v*` tag-triggered CD, same
-  shape as the CLI; needs no new decision (ADR-015). Package + workflow in place;
-  the first release (via `/release`) waits on the Claude Desktop `auth_login`
-  timeout test.
+- ✅ Publish `@albertomarturelo/nemo-mcp` (npm) — `mcp-v*` tag-triggered CD, same
+  shape as the CLI; needs no new decision (ADR-015). First published as 0.3.0.
+- ✅ Grok Bot integration pack (`docs/integrations/grok-bot/`) — prompt, skills and
+  routines for unattended, read-only use of the CLI; the skills are fetched at a
+  `cli-v*` tag (ADR `non-interactive-login`).
 - ⬜ Coverage gate in CI (mirror nemo-cli's ≥95%).
 - ⬜ `--account-id` / multi-account selection once the portfolio reads exist.
