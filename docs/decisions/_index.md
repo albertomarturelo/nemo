@@ -32,3 +32,4 @@ numbered ADRs keep their number forever. One table, ordered by date
 | adopt-cfd-upstream-revisions | [Adopt the CFD upstream revisions (Agent Skills, hooks, date-slug ADRs)](2026-10-15-adopt-cfd-upstream-revisions.md) | Accepted | 2026-10-15 |
 | mcp-browser-login | [Browser login — the MCP can start sign-in; the password goes only to Vector's page](2026-10-15-mcp-browser-login.md) | Accepted | 2026-10-15 |
 | non-interactive-login | [Non-interactive login — `--password-env` / `--password-stdin`, an idempotent login, a rejection latch](2026-10-19-non-interactive-login.md) | Accepted | 2026-10-19 |
+| repository-hardening | [Repository hardening — a reviewed `main`, immutable release tags, pinned actions](2026-10-20-repository-hardening.md) | Accepted | 2026-10-20 |

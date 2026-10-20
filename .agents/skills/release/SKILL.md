@@ -109,7 +109,10 @@ Only release from a passing install.
 
 Open the PR: title `chore(release): <version> for <packages>`, the PR template,
 and a body that names the tag order. Run `/review-pr`, wait for CI, then
-squash-merge with that same subject plus `(#<n>)`.
+squash-merge with that same subject plus `(#<n>)`. The `main` ruleset needs a
+code-owner approval, which the owner cannot give their own PR, so the owner merges
+with `gh pr merge <n> --squash --admin` (ADR `repository-hardening`). Release tags
+are immutable once pushed: a wrong one is fixed with a new patch version.
 
 ## 4. Publish — only with the user's explicit go-ahead
 

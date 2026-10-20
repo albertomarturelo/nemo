@@ -175,6 +175,12 @@ checklist for the rules below and stops for an explicit OK before any tag.
 - **Release tags name their package: `<pkg>-v<version>`** (`core-v0.2.0`,
   `cli-v0.1.0`, and `mcp-v<version>` for the MCP server). Each package versions
   independently — there is no lockstep release. A bare `v*` tag is legacy and means nothing now (ADR-014 / ADR-015).
+  Release tags are immutable and only the admin can create them: a wrong tag is
+  fixed with a new patch version, never moved or deleted (ADR `repository-hardening`).
+- **Every workflow `uses:` is pinned to a full commit SHA**, with the version in a
+  comment (`@<sha> # v4.4.0`). Dependabot proposes the updates weekly. A new action
+  that is not GitHub-owned also needs an entry in the repo's allowed-actions list
+  (ADR `repository-hardening`).
 - **The `npm-publish` Environment's deployment tag policy is the gate**, not the
   workflow trigger. It decides which ref can read `NPM_TOKEN`, so a tag matching
   the workflow but not the policy produces a job that starts and cannot
@@ -214,6 +220,13 @@ checklist for the rules below and stops for an explicit OK before any tag.
   the first branch, so each PR shows only its own diff and closes only its own
   issue. Never one PR spanning two issues (PR #7 merged the `cartera` rename +
   the summary feature together — a mixed PR to avoid).
+- **`main` changes only through a PR, merged by squash** (ADR
+  `repository-hardening`). The ruleset requires a code-owner approval, green CI on
+  a branch up to date with `main`, and a clean CodeQL check. The owner cannot
+  approve their own PR, so they merge it with `gh pr merge <n> --squash --admin`
+  once CI is green; the bypass works only through a PR, never as a push. A renamed
+  CI job is a required check: update the ruleset in the same change. A GitHub-side
+  setting that changes updates that ADR in the same session.
 - **Merging a stacked pair: retarget the top PR BEFORE the base merges.** CI
   runs only on PRs into `main`, so the top PR has no checks while it is stacked.
   Merging the base with `--delete-branch` makes GitHub CLOSE the top PR, and a
