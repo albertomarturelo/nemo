@@ -14,6 +14,13 @@ All notable changes to the CLI package are documented here. The format follows
   agents. Both need `--user` and never fall back to another source. The variable
   is removed from the environment once read, and stdin is refused when it is a
   terminal and given up on after 10 s of silence (ADR `non-interactive-login`).
+- The rejection latch. When Vector rejects a password (type `login_rejected`),
+  `--password-env` and `--password-stdin` refuse for that email without
+  contacting Vector (type `login_blocked`, exit 3), until a person signs in at the
+  prompt or runs `nemo auth unblock`.
+- `nemo auth unblock [--user <email>]` lifts the block, and refuses without a
+  terminal.
+- `nemo auth status` reports `loginBlocked`, and `--human` lists each block.
 
 ### Changed
 

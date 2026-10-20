@@ -4,12 +4,20 @@
 // internal to the auth layer — a surface reaches them only through a task
 // (`login` in the CLI-only subpath, or the session module's automatic renewal).
 import { API_BASE_URL, ENDPOINTS } from '../config/index.js';
-import { LoginFailedError, SessionExpiredError } from '../errors/index.js';
+import {
+  ApiError,
+  LoginFailedError,
+  LoginRejectedError,
+  SessionExpiredError,
+} from '../errors/index.js';
 import type { Runtime } from '../seams/index.js';
 
 /** Exchange explicit credentials for a bearer token via the SignIn endpoint. The
- *  credentials are passed in by the caller (`login`, collected interactively) and
- *  are never read from the environment or written to disk (ADR-006). */
+ *  credentials are passed in by the caller (`login`) and never written to disk
+ *  (ADR-006). The failure kind decides the rejection latch (ADR
+ *  `non-interactive-login`): a non-429 `4xx` means Vector judged the password and
+ *  refused it (`LoginRejectedError`, which trips the latch); a `429` is rate
+ *  limiting and a `5xx` a server fault, where the password was never judged. */
 export async function signIn(rt: Runtime, username: string, password: string): Promise<string> {
   const res = await rt.http.send({
     method: 'POST',
@@ -18,9 +26,10 @@ export async function signIn(rt: Runtime, username: string, password: string): P
     timeoutMs: 15_000,
   });
   if (res.status >= 400) {
-    throw new LoginFailedError(
-      `SignIn failed (${res.status} ${res.statusText}): ${await res.text()}`,
-    );
+    const message = `SignIn failed (${res.status} ${res.statusText}): ${await res.text()}`;
+    if (res.status === 429) throw new ApiError(429, message);
+    if (res.status < 500) throw new LoginRejectedError(res.status, message);
+    throw new LoginFailedError(message);
   }
   const token = tokenFromSignIn(await res.json());
   if (token === null) {

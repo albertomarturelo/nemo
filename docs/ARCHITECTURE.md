@@ -73,6 +73,10 @@ portal, the real filesystem, or the wall clock:
 - `Clock` — time, for testable JWT-exp math and pacing.
 - `AuditSink` — append the JSONL receipt (default: fs append; secret-looking keys
   dropped).
+- `LoginLatch` — the rejection latch: after Vector rejects a password, unattended
+  sign-ins for that user refuse locally until a person clears it (default: an
+  owner-only `login-blocked.json` in the state directory; ADR
+  `non-interactive-login`).
 
 The core ships default Node implementations (reachable only via the
 `@albertomarturelo/nemo-core/node` subpath, ADR-008) and exposes a composition helper
@@ -85,19 +89,19 @@ centralizing the auth-renewal rails — not full hexagonal ceremony (ADR-003).
 | Module | Purpose | Status |
 | --- | --- | --- |
 | `config` | Base URL + endpoint paths + refresh window (single source of truth) | Done |
-| `seams` | `HttpClient` / `TokenStore` / `Clock` / `AuditSink` interfaces + `Runtime`; optional `BrowserLogin` (wired by both composition roots) | Done |
+| `seams` | `HttpClient` / `TokenStore` / `Clock` / `AuditSink` / `LoginLatch` interfaces + `Runtime`; optional `BrowserLogin` (wired by both composition roots) | Done |
 | `errors` | `NotAuthenticated` / `SessionExpired` / `LoginFailed` / `ApiError` / `ContractError` / `ValidationError` + `classifyError` (the stable `type`) | Done |
 | `auth/jwt` | Signature-unverified `exp` peek for proactive renewal | Done |
 | `auth/service` | `signIn` + `refreshToken` bootstrap calls over the HTTP seam | Done |
 | `auth/session` | `request()` — the single authenticated HTTP path (proactive + reactive renew) | Done |
-| `tasks/auth` | `authStatus`, `logout`, `browserLogin` (barrel) + `login` (CLI-only subpath, ADR-006): idempotent over a live session of the same user, password read lazily from its `source` (ADR `non-interactive-login`) | Done |
+| `tasks/auth` | `authStatus`, `logout`, `browserLogin` (barrel) + `login` (CLI-only subpath, ADR-006): idempotent over a live session of the same user, password read lazily from its `source`, guarded by the rejection latch; `unblock` (CLI-only subpath) lifts the latch (ADR `non-interactive-login`) | Done |
 | `tasks/instruments` | `instrumentsLocal` — the first read; the template later reads mirror | Done |
 | `tasks/instruments` (prices) | `instrumentPrices` — local daily price history + pure stats/sparkline | Done |
 | `tasks/instruments` (intl) | `instrumentsInternational` — US-listed assets; same `{ market, page, pageSize, total, items }` shape, wire envelope is `{ items, totalCount }` | Done |
 | `tasks/cartera` | Cash movements (classified + aggregated) + holdings summary (P&L, totals by classification) | Done |
 | `tasks/cartera` (saldo) | `carteraSaldo` — standing cash balance per caja as of a date; only `montoConvertido` totals | Done |
-| `adapters/node` | `FetchHttpClient` / `FileTokenStore` / `SystemClock` / `FileAuditSink` + `PlaywrightBrowserLogin` (lazy `playwright`); `resolveNemoDir` (`NEMO_HOME` or `~/.nemo`) | Done |
-| `adapters/fake` | In-memory fakes for the four seams (`testing`) | Done |
+| `adapters/node` | `FetchHttpClient` / `FileTokenStore` / `SystemClock` / `FileAuditSink` / `FileLoginLatch` + `PlaywrightBrowserLogin` (lazy `playwright`); `resolveNemoDir` (`NEMO_HOME` or `~/.nemo`) | Done |
+| `adapters/fake` | In-memory fakes for every seam (`testing`), `MemoryLoginLatch` included | Done |
 | `audit` | `audited()` wrapper — one receipt per task | Done |
 
 ## Error contract
@@ -119,9 +123,10 @@ A `type` is never renamed. A caller treats one it does not know as `unexpected`.
 | --- | --- | --- |
 | `not_authenticated` | No cached token (`NotAuthenticatedError`) | 2 |
 | `session_expired` | Renewal failed (`SessionExpiredError`) | 2 |
-| `login_failed` | The sign-in failed (`LoginFailedError`) | 3 |
-| `login_rejected`, `login_blocked` | Reserved for the rejection latch (ADR `non-interactive-login`); not raised yet | 3 |
-| `rate_limited` | A portal `429` (`ApiError`) | 1 |
+| `login_failed` | Any other sign-in failure: a `SignIn` `5xx`, an empty or missing password, an abandoned browser sign-in (`LoginFailedError`) | 3 |
+| `login_rejected` | Vector refused the password: a non-429 `4xx` from `SignIn` (`LoginRejectedError`). Trips the latch | 3 |
+| `login_blocked` | The latch refused an unattended sign-in without contacting Vector (`LoginBlockedError`) | 3 |
+| `rate_limited` | A portal `429` (`ApiError`), `SignIn` included | 1 |
 | `api_error` | Any other portal non-2xx (`ApiError`) | 1 |
 | `contract` | The response shape drifted (`ContractError`) | 1 |
 | `validation` | Bad configuration, e.g. a relative `NEMO_HOME` (`ValidationError`) | 1 |

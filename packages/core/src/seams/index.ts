@@ -2,8 +2,9 @@
 // core touches — the network, the token cache, the wall clock, the audit sink — is
 // an interface here with a Node default in `adapters/node` and an in-memory fake in
 // `adapters/fake`. Tests inject fakes so they never touch the real Vector portal,
-// the real filesystem, or the real clock. A `Runtime` is one bundle of the four,
-// plus the optional `BrowserLogin` (ADR `mcp-browser-login`).
+// the real filesystem, or the real clock. A `Runtime` is one bundle of the four
+// plus the `LoginLatch` (ADR `non-interactive-login`), and the optional
+// `BrowserLogin` (ADR `mcp-browser-login`).
 //
 // Vector is a plain JSON REST API with bearer-token auth, so — unlike a browser-
 // driven portal — the network seam is a thin HTTP client, not a Playwright driver.
@@ -61,7 +62,8 @@ export interface Clock {
 export interface AuditEntry {
   ts: string;
   action: string;
-  result: 'ok' | 'error';
+  /** `blocked`: the rejection latch refused the operation before it started. */
+  result: 'ok' | 'error' | 'blocked';
   durationMs?: number;
   [extra: string]: unknown;
 }
@@ -69,6 +71,28 @@ export interface AuditEntry {
 /** The audit seam. Default: append JSONL to `audit.log` in the state directory. */
 export interface AuditSink {
   write(entry: AuditEntry): Promise<void>;
+}
+
+/** One rejection-latch entry: Vector refused `user`'s password at `at` (ISO time)
+ *  with HTTP `status`. It holds no secret. `user` is the email, lower-cased. */
+export interface LatchEntry {
+  user: string;
+  at: string;
+  status: number;
+}
+
+/** The rejection latch (ADR `non-interactive-login`). After Vector rejects a
+ *  password, unattended sign-ins for that user refuse locally until a person clears
+ *  it, so a loop never retries a stale password into an account lockout. One entry
+ *  per user, so tripping a second account never lifts the first. Default: an
+ *  owner-only `login-blocked.json` in the state directory. */
+export interface LoginLatch {
+  list(): Promise<LatchEntry[]>;
+  /** Record (or replace) the entry for `entry.user`. */
+  trip(entry: LatchEntry): Promise<void>;
+  /** Remove `user`'s entry, or every entry when `user` is omitted. Returns the users
+   *  whose entries were removed. */
+  clear(user?: string): Promise<string[]>;
 }
 
 /** Options for one headed browser sign-in. */
@@ -91,6 +115,7 @@ export interface Runtime {
   tokens: TokenStore;
   clock: Clock;
   audit: AuditSink;
+  latch: LoginLatch;
   /** Present only where a composition root wires browser sign-in (both surfaces
    *  do). `browserLogin` fails with a pointer to `nemo auth login` without it. */
   browser?: BrowserLogin;

@@ -89,7 +89,8 @@ Salida **JSON por defecto** (pipeable a `jq`); `--human` para lectura.
 | `nemo auth login --user <email> --password-env <VAR>` | Inicio de sesión desatendido: la contraseña viene de una variable de entorno que nombras (se borra al leerla) |
 | `nemo auth login --user <email> --password-stdin` | Inicio de sesión desatendido: la contraseña es la primera línea de stdin (un pipe o un archivo, nunca la terminal) |
 | `nemo auth login --browser` | Inicia sesión en la página de Vector en un navegador; la contraseña no pasa por nemo |
-| `nemo auth status` | Estado de la sesión local (`active` / `expiring` / `expired` / `logged_out`) |
+| `nemo auth status` | Estado de la sesión local (`active` / `expiring` / `expired` / `logged_out`) y los bloqueos de login (`loginBlocked`) |
+| `nemo auth unblock [--user <email>]` | Levanta el bloqueo de login desatendido tras corregir la contraseña (solo desde una terminal) |
 | `nemo auth logout` | Borra el token cacheado |
 | `nemo instruments local [--search] [--page] [--limit]` | Lista instrumentos chilenos |
 | `nemo instruments international [--search] [--exchange] [--page] [--limit]` | Lista instrumentos internacionales (US-listed) |

@@ -67,6 +67,8 @@ export type {
   HttpClient,
   HttpRequest,
   HttpResponse,
+  LatchEntry,
+  LoginLatch,
   Runtime,
   TokenStore,
 } from './seams/index.js';

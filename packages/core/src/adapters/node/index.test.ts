@@ -6,7 +6,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ValidationError } from '../../errors/index.js';
-import { FileAuditSink, FileTokenStore, NEMO_DIR, resolveNemoDir } from './index.js';
+import {
+  FileAuditSink,
+  FileLoginLatch,
+  FileTokenStore,
+  NEMO_DIR,
+  resolveNemoDir,
+} from './index.js';
 
 describe('resolveNemoDir', () => {
   it('defaults to ~/.nemo when NEMO_HOME is unset or empty', () => {
@@ -77,5 +83,28 @@ describe('file adapters in a given state directory', () => {
     });
     const line = JSON.parse((await readFile(join(dir, 'audit.log'), 'utf8')).trim());
     expect(line).toEqual({ ts: '2026-01-01T00:00:00.000Z', action: 'auth.login', result: 'ok' });
+  });
+
+  it('FileLoginLatch keeps one owner-only entry per user, and removes the file once empty', async () => {
+    const latch = new FileLoginLatch(dir);
+    const file = join(dir, 'login-blocked.json');
+    const a = { user: 'me@mail.cl', at: '2026-01-01T00:00:00.000Z', status: 401 };
+    const b = { user: 'other@mail.cl', at: '2026-01-02T00:00:00.000Z', status: 400 };
+
+    expect(await latch.list()).toEqual([]);
+    await latch.trip(a);
+    await latch.trip(b);
+    await latch.trip({ ...a, status: 403 }); // a re-trip replaces, never duplicates
+    expect(await latch.list()).toEqual([b, { ...a, status: 403 }]);
+    expect((await stat(file)).mode & 0o777).toBe(0o600);
+
+    expect(await latch.clear('other@mail.cl')).toEqual(['other@mail.cl']);
+    expect(await latch.clear()).toEqual(['me@mail.cl']);
+    await expect(stat(file)).rejects.toThrow();
+  });
+
+  it('FileLoginLatch reads a corrupt file as empty', async () => {
+    await writeFile(join(dir, 'login-blocked.json'), '{not json', 'utf8');
+    expect(await new FileLoginLatch(dir).list()).toEqual([]);
   });
 });

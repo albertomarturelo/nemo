@@ -5,7 +5,8 @@ import { buildProgram } from './program.js';
 import { asDomainError, exitCodeFor, isCommanderExit, renderError } from './io.js';
 import { captureStdout, fakeInputs, scriptedPrompters } from './test-helpers.js';
 
-const { FakeBrowserLogin, FakeHttpClient, MemoryTokenStore, fakeRuntime } = testing;
+const { FakeBrowserLogin, FakeHttpClient, MemoryLoginLatch, MemoryTokenStore, fakeRuntime } =
+  testing;
 
 /** A token that never expires (year 2100), so reads don't trigger a refresh. */
 const FRESH = (() => {
@@ -49,7 +50,11 @@ describe('nemo CLI', () => {
     const rt = fakeRuntime();
     cap = captureStdout();
     await run(rt, ['auth', 'status']);
-    expect(JSON.parse(cap.text())).toEqual({ authenticated: false, state: 'logged_out' });
+    expect(JSON.parse(cap.text())).toEqual({
+      authenticated: false,
+      state: 'logged_out',
+      loginBlocked: [],
+    });
   });
 
   it('instruments local → JSON envelope from the (faked) portal', async () => {
@@ -284,6 +289,72 @@ describe('nemo CLI', () => {
         fakeInputs({ env: { NEMO_PW: '' } }),
       );
       expect(res.error).toContain('NEMO_PW');
+    });
+  });
+
+  describe('the rejection latch (ADR non-interactive-login)', () => {
+    const entry = { user: 'me@mail.cl', at: '2026-01-01T00:00:00.000Z', status: 401 };
+
+    it('a rejected password is login_rejected (exit 3) and shows in auth status', async () => {
+      const latch = new MemoryLoginLatch();
+      const http = new FakeHttpClient(() => ({ status: 401, text: 'bad credentials' }));
+      const rt = fakeRuntime({ http, latch });
+      const res = await failure(
+        rt,
+        ['auth', 'login', '--user', 'me@mail.cl', '--password-stdin'],
+        fakeInputs({ stdin: 'synthetic-pw' }),
+      );
+      expect(res).toMatchObject({ type: 'login_rejected', exitCode: 3 });
+      cap = captureStdout();
+      await run(rt, ['auth', 'status']);
+      expect(JSON.parse(cap.text())).toMatchObject({
+        loginBlocked: [{ user: 'me@mail.cl', status: 401 }],
+      });
+    });
+
+    it('while latched, --password-env is login_blocked (exit 3) and sends nothing', async () => {
+      const http = new FakeHttpClient();
+      const rt = fakeRuntime({ http, latch: new MemoryLoginLatch([entry]) });
+      const res = await failure(
+        rt,
+        ['auth', 'login', '--user', 'me@mail.cl', '--password-env', 'NEMO_PW'],
+        fakeInputs({ env: { NEMO_PW: 'synthetic-pw' } }),
+      );
+      expect(res).toMatchObject({ type: 'login_blocked', exitCode: 3 });
+      expect(res.error).toContain('nemo auth unblock');
+      expect(http.calls).toHaveLength(0);
+    });
+
+    it('auth status --human lists the block', async () => {
+      cap = captureStdout();
+      await run(fakeRuntime({ latch: new MemoryLoginLatch([entry]) }), [
+        'auth',
+        'status',
+        '--human',
+      ]);
+      expect(cap.text()).toContain('Unattended sign-in blocked for me@mail.cl');
+    });
+
+    it('auth unblock refuses without a terminal, and lifts nothing', async () => {
+      const latch = new MemoryLoginLatch([entry]);
+      const res = await failure(fakeRuntime({ latch }), ['auth', 'unblock'], fakeInputs());
+      expect(res).toMatchObject({ type: 'validation', exitCode: 1 });
+      expect(latch.entries).toEqual([entry]);
+    });
+
+    it('auth unblock in a terminal lifts one user or all', async () => {
+      const other = { ...entry, user: 'other@mail.cl' };
+      const latch = new MemoryLoginLatch([entry, other]);
+      const rt = fakeRuntime({ latch });
+      const tty = fakeInputs({ isTTY: true });
+      cap = captureStdout();
+      await run(rt, ['auth', 'unblock', '--user', 'other@mail.cl'], scriptedPrompters({}), tty);
+      expect(JSON.parse(cap.text())).toEqual({ unblocked: ['other@mail.cl'] });
+      cap.restore();
+      cap = captureStdout();
+      await run(rt, ['auth', 'unblock'], scriptedPrompters({}), tty);
+      expect(JSON.parse(cap.text())).toEqual({ unblocked: ['me@mail.cl'] });
+      expect(latch.entries).toEqual([]);
     });
   });
 

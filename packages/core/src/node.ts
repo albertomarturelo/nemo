@@ -5,6 +5,7 @@
 import {
   FetchHttpClient,
   FileAuditSink,
+  FileLoginLatch,
   FileTokenStore,
   resolveNemoDir,
   SystemClock,
@@ -19,6 +20,7 @@ export { PlaywrightBrowserLogin } from './adapters/node/browser-login.js';
 export {
   FetchHttpClient,
   FileAuditSink,
+  FileLoginLatch,
   FileTokenStore,
   NEMO_DIR,
   resolveNemoDir,
@@ -26,7 +28,7 @@ export {
 } from './adapters/node/index.js';
 
 /** Composition root: the Node default adapters, any seam replaceable (ADR-003).
- *  e.g. `createNodeRuntime({ http: myClient })` keeps the other three defaults.
+ *  e.g. `createNodeRuntime({ http: myClient })` keeps the other defaults.
  *  The state directory is resolved here, once, so a bad `NEMO_HOME` fails as a
  *  `ValidationError` before any file is touched. */
 export function createNodeRuntime(overrides: Partial<Runtime> = {}): Runtime {
@@ -36,6 +38,7 @@ export function createNodeRuntime(overrides: Partial<Runtime> = {}): Runtime {
     tokens: new FileTokenStore(dir),
     clock: new SystemClock(),
     audit: new FileAuditSink(dir),
+    latch: new FileLoginLatch(dir),
     ...overrides,
   };
 }

@@ -14,7 +14,7 @@ import {
   ValidationError,
   type Runtime,
 } from '@albertomarturelo/nemo-core';
-import { login, type LoginSource } from '@albertomarturelo/nemo-core/cli';
+import { login, unblock, type LoginSource } from '@albertomarturelo/nemo-core/cli';
 import { emit, out } from '../io.js';
 import type { ProcessInputs, Prompters } from '../prompt.js';
 
@@ -120,7 +120,38 @@ export function registerAuth(
             ? `Authenticated (${status.state}).`
             : 'Not authenticated. Run `nemo auth login`.',
         );
+        for (const entry of status.loginBlocked) {
+          out(
+            `Unattended sign-in blocked for ${entry.user}: password rejected at ${entry.at} (HTTP ${entry.status}).`,
+          );
+        }
       });
+    });
+
+  auth
+    .command('unblock')
+    .description(
+      'Lift the block on unattended sign-in after Vector rejected a password (local; never contacts Vector). Needs a terminal.',
+    )
+    .option('--user <email>', 'Lift it for this email only (default: every blocked email).')
+    .action(async (opts: { user?: string }) => {
+      // The block exists so an unattended caller cannot retry a stale password; one
+      // that could lift it would make it pointless. This stops a cron or a piped
+      // agent, not one running in a pseudo-terminal: its instructions must forbid
+      // `unblock` too (ADR `non-interactive-login`).
+      if (!inputs.stdin.isTTY) {
+        throw new ValidationError(
+          '`nemo auth unblock` needs a terminal: a person lifts the block, after fixing the password.',
+        );
+      }
+      const result = await unblock(runtime, opts.user === undefined ? {} : { user: opts.user });
+      emit(result, () =>
+        out(
+          result.unblocked.length === 0
+            ? 'Nothing was blocked.'
+            : `Unblocked: ${result.unblocked.join(', ')}.`,
+        ),
+      );
     });
 
   auth

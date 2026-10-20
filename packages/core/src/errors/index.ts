@@ -25,6 +25,30 @@ export class SessionExpiredError extends NotAuthenticatedError {
 /** The SignIn endpoint rejected the supplied credentials. Exit code 3. */
 export class LoginFailedError extends NemoError {}
 
+/** Vector judged the password and refused it: any non-429 `4xx` from `SignIn`. Its
+ *  wrong-password response is unobserved, so every such status counts, which errs
+ *  toward over-blocking. It trips the rejection latch (ADR `non-interactive-login`). */
+export class LoginRejectedError extends LoginFailedError {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+/** The rejection latch refused an unattended sign-in WITHOUT contacting Vector: its
+ *  password was rejected earlier and no person has cleared it since. */
+export class LoginBlockedError extends LoginFailedError {
+  constructor(
+    readonly status: number,
+    readonly at: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
 /** The portal returned a non-2xx for a domain read/write. Carries the HTTP status
  *  so a surface can decide, but the message is surfaced verbatim. Exit code 1. */
 export class ApiError extends NemoError {
@@ -46,8 +70,7 @@ export class ValidationError extends NemoError {}
 
 /** The stable error kind a caller decides on — never the message text (ADR
  *  `non-interactive-login`). A value is never renamed; a caller treats one it does
- *  not know as `unexpected`. `login_rejected` / `login_blocked` are reserved for the
- *  rejection latch, which raises them once it lands. */
+ *  not know as `unexpected`. */
 export type ErrorType =
   | 'not_authenticated'
   | 'session_expired'
@@ -76,6 +99,8 @@ export function classifyError(error: unknown): ClassifiedError {
 function typeOf(error: unknown): ErrorType {
   if (error instanceof SessionExpiredError) return 'session_expired';
   if (error instanceof NotAuthenticatedError) return 'not_authenticated';
+  if (error instanceof LoginRejectedError) return 'login_rejected';
+  if (error instanceof LoginBlockedError) return 'login_blocked';
   if (error instanceof LoginFailedError) return 'login_failed';
   if (error instanceof ApiError) return error.status === 429 ? 'rate_limited' : 'api_error';
   if (error instanceof ContractError) return 'contract';
