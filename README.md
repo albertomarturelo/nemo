@@ -73,6 +73,15 @@ el servidor solo recibe el token. Ningún tool
 de MCP recibe contraseña. Ver [ADR-006](docs/decisions/006-credentials-cli-only-never-mcp.md)
 y [`mcp-browser-login`](docs/decisions/2026-10-15-mcp-browser-login.md).
 
+## Uso desatendido
+
+Para que un agente lea tu cuenta sin nadie al teclado (por ejemplo, un resumen diario
+de cartera), [`docs/integrations/grok-bot/`](docs/integrations/grok-bot/README.md) trae
+un paquete listo para Grok Bot: el prompt, los skills y las rutinas. La contraseña
+llega al computador del agente por su terminal de "take control", nunca por el chat,
+y la CLI la lee solo con `--password-stdin`. Ver
+[`non-interactive-login`](docs/decisions/2026-10-19-non-interactive-login.md).
+
 ## Capacidades
 
 Ambas superficies exponen las mismas lecturas sobre el portal (un solo núcleo): el
