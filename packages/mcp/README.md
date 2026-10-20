@@ -41,7 +41,7 @@ claude mcp add nemo -- npx -y @albertomarturelo/nemo-mcp
 | Tool                        | What it does                                                    |
 | --------------------------- | --------------------------------------------------------------- |
 | `auth_login`                | Sign in on Vector's own page in a browser window (no arguments) |
-| `auth_status`               | Session state (local read — never touches the network)          |
+| `auth_status`               | Session state and any login block (local read)                  |
 | `auth_logout`               | Drop the cached token                                           |
 | `instruments_local`         | Chilean instruments, paged                                      |
 | `instruments_international` | International (US-listed) instruments, paged                    |

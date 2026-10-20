@@ -1,4 +1,4 @@
-// In-memory fakes for the four seams. Exported from the main barrel as `testing`
+// In-memory fakes for the seams. Exported from the main barrel as `testing`
 // (`import { testing } from '@albertomarturelo/nemo-core'`) so surface + integration tests
 // build a Runtime that never touches the network, the filesystem, or the clock.
 import { LoginFailedError } from '../../errors/index.js';
@@ -11,6 +11,8 @@ import type {
   HttpClient,
   HttpRequest,
   HttpResponse,
+  LatchEntry,
+  LoginLatch,
   Runtime,
   TokenStore,
 } from '../../seams/index.js';
@@ -95,6 +97,28 @@ export class MemoryAuditSink implements AuditSink {
   }
 }
 
+/** Fake rejection latch: the entries in an array, in insertion order. */
+export class MemoryLoginLatch implements LoginLatch {
+  readonly entries: LatchEntry[];
+  constructor(entries: LatchEntry[] = []) {
+    this.entries = [...entries];
+  }
+  list(): Promise<LatchEntry[]> {
+    return Promise.resolve([...this.entries]);
+  }
+  trip(entry: LatchEntry): Promise<void> {
+    const i = this.entries.findIndex((e) => e.user === entry.user);
+    if (i >= 0) this.entries.splice(i, 1);
+    this.entries.push(entry);
+    return Promise.resolve();
+  }
+  clear(user?: string): Promise<string[]> {
+    const removed = this.entries.filter((e) => user === undefined || e.user === user);
+    for (const e of removed) this.entries.splice(this.entries.indexOf(e), 1);
+    return Promise.resolve(removed.map((e) => e.user));
+  }
+}
+
 /** Fake browser sign-in: returns a canned token, or rejects with `fail` (a timeout /
  *  closed window by default). Records each call's options for assertions. */
 export class FakeBrowserLogin implements BrowserLogin {
@@ -110,13 +134,15 @@ export class FakeBrowserLogin implements BrowserLogin {
 }
 
 /** Assemble a full fake `Runtime`, overriding any seam. The default is a network
- *  that returns empty 200s, no cached token, a frozen clock, and a memory audit. */
+ *  that returns empty 200s, no cached token, a frozen clock, a memory audit, and an
+ *  empty latch. */
 export function fakeRuntime(overrides: Partial<Runtime> = {}): Runtime {
   return {
     http: new FakeHttpClient(),
     tokens: new MemoryTokenStore(),
     clock: new FixedClock(),
     audit: new MemoryAuditSink(),
+    latch: new MemoryLoginLatch(),
     ...overrides,
   };
 }

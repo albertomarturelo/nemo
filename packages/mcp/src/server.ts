@@ -34,7 +34,7 @@ export function buildServer(runtime: Runtime): McpServer {
     {
       title: 'Session state',
       description:
-        'LOCAL session state (authenticated + coarse token state). Never touches the network.',
+        'LOCAL session state (authenticated + coarse token state + loginBlocked). Never touches the network.',
       mimeType: 'application/json',
     },
     async (uri) => jsonResource(uri, await authStatus(runtime)),
@@ -80,8 +80,9 @@ export function buildServer(runtime: Runtime): McpServer {
     {
       title: 'Session status',
       description:
-        'LOCAL read of the session (authenticated + coarse state). Never touches the network. ' +
-        'When logged out or expired, call auth_login.',
+        'LOCAL read of the session (authenticated + coarse state), plus loginBlocked: emails whose ' +
+        'unattended sign-in is blocked after Vector rejected their password (only a person can lift ' +
+        'it, from a terminal). Never touches the network. When logged out or expired, call auth_login.',
       annotations: { readOnlyHint: true },
     },
     () => toolJson(() => authStatus(runtime)),

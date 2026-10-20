@@ -13,6 +13,8 @@ import type {
   HttpClient,
   HttpRequest,
   HttpResponse,
+  LatchEntry,
+  LoginLatch,
   TokenStore,
 } from '../../seams/index.js';
 
@@ -113,6 +115,56 @@ export class FileTokenStore implements TokenStore {
   async clear(): Promise<void> {
     await rm(this.file, { force: true });
   }
+}
+
+/** Default rejection latch: `login-blocked.json` in the state directory, a JSON array
+ *  of `{ user, at, status }`, owner-only (`0600`). The file is removed once empty,
+ *  so its absence means "nothing is blocked". An unreadable file reads as empty: the
+ *  latch is a guard on top of Vector's own lockout, and a corrupt file must not
+ *  wedge every sign-in. */
+export class FileLoginLatch implements LoginLatch {
+  private readonly file: string;
+
+  constructor(dir: string = resolveNemoDir()) {
+    this.file = join(dir, 'login-blocked.json');
+  }
+
+  async list(): Promise<LatchEntry[]> {
+    try {
+      const raw: unknown = JSON.parse(await readFile(this.file, 'utf8'));
+      return Array.isArray(raw) ? raw.filter(isLatchEntry) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  async trip(entry: LatchEntry): Promise<void> {
+    const others = (await this.list()).filter((e) => e.user !== entry.user);
+    await this.write([...others, entry]);
+  }
+
+  async clear(user?: string): Promise<string[]> {
+    const entries = await this.list();
+    const removed = entries.filter((e) => user === undefined || e.user === user);
+    if (removed.length > 0) await this.write(entries.filter((e) => !removed.includes(e)));
+    return removed.map((e) => e.user);
+  }
+
+  private async write(entries: LatchEntry[]): Promise<void> {
+    if (entries.length === 0) {
+      await rm(this.file, { force: true });
+      return;
+    }
+    await mkdir(dirname(this.file), { recursive: true });
+    await writeFile(this.file, JSON.stringify(entries), { encoding: 'utf8', mode: 0o600 });
+    await chmod(this.file, 0o600);
+  }
+}
+
+function isLatchEntry(value: unknown): value is LatchEntry {
+  if (typeof value !== 'object' || value === null) return false;
+  const e = value as Record<string, unknown>;
+  return typeof e.user === 'string' && typeof e.at === 'string' && typeof e.status === 'number';
 }
 
 /** Default clock: the wall clock. */

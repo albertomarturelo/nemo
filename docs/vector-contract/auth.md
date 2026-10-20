@@ -17,7 +17,15 @@ and it is reachable only from the CLI-only `login` task (ADR-006).
 { "token": "eyJhbGciOi…" }   // the bearer JWT
 ```
 
-- **Errors:** any `>= 400` → `LoginFailedError` with the status + verbatim body.
+- **Errors** (each carries the status + the verbatim body):
+  - a `4xx` other than `408` / `429` → `LoginRejectedError` (type
+    `login_rejected`), which trips the rejection latch (ADR
+    `non-interactive-login`). Vector's wrong-password response is **unobserved**,
+    so every such status counts as "Vector judged the password and refused it".
+    Narrow this once a wrong-password response is observed.
+  - `429` → `ApiError` (type `rate_limited`). The latch is not tripped.
+  - `408` (a timeout) or `5xx` → `LoginFailedError` (type `login_failed`). The latch
+    is not tripped.
 
 ## Web login (browser) — observed 2026-10-15
 

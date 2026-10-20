@@ -99,6 +99,21 @@ describe('@albertomarturelo/nemo-mcp server (in-memory client, fake runtime, no 
     expect(toolText(res)).toContain('logged_out');
   });
 
+  it('auth_status and nemo://session report the rejection latch; no tool lifts it', async () => {
+    const entry = { user: 'me@mail.cl', at: '2026-01-01T00:00:00.000Z', status: 401 };
+    const latch = new testing.MemoryLoginLatch([entry]);
+    const client = await connect(makeRuntime({ latch }));
+
+    const res = await client.callTool({ name: 'auth_status', arguments: {} });
+    expect(JSON.parse(toolText(res))).toMatchObject({ loginBlocked: [entry] });
+    const session = await client.readResource({ uri: 'nemo://session' });
+    expect(JSON.parse(resourceText(session))).toMatchObject({ loginBlocked: [entry] });
+
+    const { tools } = await client.listTools();
+    expect(tools.some((t) => /unblock|latch/i.test(t.name))).toBe(false);
+    expect(latch.entries).toEqual([entry]);
+  });
+
   it('instruments_local returns the curated envelope over a live session', async () => {
     const http = new testing.FakeHttpClient(() => ({
       json: {

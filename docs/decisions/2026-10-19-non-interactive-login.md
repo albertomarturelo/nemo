@@ -4,7 +4,8 @@
 
 Accepted — 2026-10-19. **Amends ADR-006**: on the CLI only, the password may also
 come from a named env var or stdin; the MCP rules are unchanged. Lineage: `sii`
-ADR-028 (with its amendment) and `sii`'s contador-bot.
+ADR-028 (with its amendment) and `sii`'s contador-bot. Amended at implementation
+(#37): a browser sign-in never clears the latch (see "Cleared by").
 
 ## Context
 
@@ -37,20 +38,20 @@ session is dead (rare: Vector renews the token, ADR-005).
     a token cached before this change), is an error that says logout, then login.
 - **The rejection latch: `<NEMO_HOME>/login-blocked.json`** (mode `0600`). It
   holds one entry per user, `{ user, at, status }`, and no secret.
-  - **Trips** on any `4xx` from `SignIn` except `429`, from any source, including
-    the prompt. Vector's wrong-password response is unobserved
-    (`docs/vector-contract/auth.md`), so this errs toward over-blocking. Never
-    on a `5xx`, a `429`, a timeout or a network error, where Vector did not judge
-    the password.
+  - **Trips** on a `4xx` from `SignIn` other than `408` / `429`, from any source,
+    including the prompt. Vector's wrong-password response is unobserved
+    (`docs/vector-contract/auth.md`), so this errs toward over-blocking. Never on
+    a `5xx`, a `408` / `429`, a timeout or a network error, where Vector did not
+    judge the password.
   - **Effect:** while it exists for a user, the env and stdin logins refuse with
     `LoginBlockedError` (a `LoginFailedError`, exit code 3) **without contacting
     Vector**. The live-token check runs first, so a latched user whose token is
     still alive keeps working.
-  - **Cleared by** a fresh successful prompt or browser login, or by
-    `nemo auth unblock [--user]`. `unblock` lives only in the CLI subpath and
-    refuses when stdin is not a TTY. That stops a cron or a piped agent, but not
-    an agent that runs commands in a pseudo-terminal, so the agent's instructions
-    must forbid it too.
+  - **Cleared by** a fresh successful prompt login for that user, or by
+    `nemo auth unblock [--user]`. Not by a browser login: the email is typed on
+    Vector's page, so nemo cannot tell whose entry it would clear. `unblock` is
+    CLI-only and refuses when stdin is not a TTY. That stops a cron or a piped
+    agent, not one running in a pseudo-terminal, so its instructions forbid it.
   - `auth status` reports `loginBlocked: [{ user, at, status }]` on the CLI and
     the MCP. The MCP never lifts it.
 - **Errors carry a stable `type`.** `classifyError` in core maps each error to
@@ -59,8 +60,7 @@ session is dead (rare: Vector renews the token, ADR-005).
   `unexpected`. The CLI writes `{ error, type, exitCode }` on STDERR, and the MCP
   returns `{ error, type }` with `isError: true`. A `type` is never renamed; an
   unknown one means `unexpected`.
-- **`NEMO_HOME` overrides `~/.nemo`** (token, audit log, latch). A path that is
-  not absolute is a `validation` error: a cron changes its working directory.
+- **`NEMO_HOME` overrides `~/.nemo`** (token, audit log, latch); it must be absolute.
 - **The rails stay.** Each invocation makes ONE `SignIn` attempt, never retried.
   The password lives in memory for that call only, and nemo never writes it
   anywhere. The tasks stay in `@albertomarturelo/nemo-core/cli`, and **no MCP tool

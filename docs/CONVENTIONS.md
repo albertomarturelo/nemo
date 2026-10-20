@@ -83,7 +83,11 @@ ADR-016). It starts with the load-bearing rules ported from the proven Python
   as an `isError` result with the text intact. Opaque translations waste the
   user's time.
 - **Never retry after an auth block.** A failed renewal clears the token and
-  stops; the user re-runs `nemo auth login`.
+  stops; the user re-runs `nemo auth login`. A rejected password (`login_rejected`)
+  trips the rejection latch, and while it is set an unattended sign-in refuses
+  without contacting Vector (`login_blocked`). Only a person lifts it: a prompt
+  sign-in, or `nemo auth unblock` in a terminal. Never make the MCP able to lift
+  it (ADR `non-interactive-login`).
 - **Domain read surfaces own a per-module file + a register fn (no barrel
   churn).** Each module ships `cli/src/commands/<mod>.ts`
   (`register<Mod>(program, runtime)`) and `mcp/src/tools/<mod>.ts`

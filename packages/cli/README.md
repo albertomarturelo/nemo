@@ -35,7 +35,8 @@ nemo cartera summary --human
 | `nemo auth login --user <email> --password-env <VAR>`       | Unattended sign-in, password from a named env var          |
 | `nemo auth login --user <email> --password-stdin`           | Unattended sign-in, password from the first line of stdin  |
 | `nemo auth login --browser`                                 | Sign in on Vector's own page in a browser window (\*)       |
-| `nemo auth status`                                          | Session state (local read — never touches the network)     |
+| `nemo auth status`                                          | Session state and any login block (local read)             |
+| `nemo auth unblock [--user <email>]`                        | Lift a login block after fixing the password (terminal)    |
 | `nemo auth logout`                                          | Drop the cached token                                      |
 | `nemo instruments local [--search] [--page] [--limit]`      | Chilean instruments, paged                                 |
 | `nemo instruments international [--search] [--exchange] …`  | International (US-listed) instruments, paged               |
@@ -120,6 +121,41 @@ bearer token and its email are cached, in an owner-only file in the state
 directory. No credential ever reaches an AI model: the password-taking sign-in is
 exported only to this CLI, and the companion MCP server signs in only through the
 browser, where the password is typed into Vector's own page.
+
+## Unattended use (cron, CI, agents)
+
+Each failed sign-in brings the account closer to Vector's lockout, so a loop must
+never retry a rejected password. nemo enforces that locally:
+
+1. **When Vector rejects a password** (type `login_rejected`), nemo writes a block
+   for that email to `login-blocked.json` in the state directory. The file is
+   owner-only and holds no secret.
+2. **While the block exists,** `--password-env` and `--password-stdin` refuse
+   without contacting Vector (type `login_blocked`). A live session still works.
+3. **A person lifts it** after fixing the password: a successful sign-in at the
+   prompt, or `nemo auth unblock` in a terminal. `unblock` refuses when stdin is
+   not a terminal. A `--browser` sign-in does not lift it, since nemo cannot tell
+   which account it was.
+
+`nemo auth status` shows any block in `loginBlocked`, so check it first. The loop
+for an agent, on each run:
+
+1. Run `nemo auth status`. If `loginBlocked` lists its email, **stop and tell a
+   person**.
+2. Run the command it needs. On type `session_expired` or `not_authenticated`,
+   sign in once and retry the command **once**:
+
+   ```bash
+   nemo auth login --user me@example.com --password-stdin < "$SECRET_FILE"
+   ```
+
+3. On any other error, **stop and tell a person**. Never retry a sign-in error.
+
+Keep the state directory between runs (`NEMO_HOME`): it holds the session and the
+block. If it is lost, the agent forgets the block and could retry a rejected
+password. Forbid `nemo auth unblock` in the agent's instructions: the terminal
+check stops a cron or a piped command, but not an agent that runs its commands in
+a pseudo-terminal.
 
 ## See also
 

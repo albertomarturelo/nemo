@@ -9,12 +9,20 @@ follows [Keep a Changelog](https://keepachangelog.com/) and the project uses
 ### Added
 
 - `NEMO_HOME` moves the state directory (token, audit log) to an absolute path.
+- `auth_status` and `nemo://session` report `loginBlocked`: the emails whose
+  unattended CLI sign-in is blocked after Vector rejected their password. No tool
+  can lift a block (ADR `non-interactive-login`).
 
 ### Changed
 
 - A failing tool's text is now `{ "error", "type" }` (JSON) instead of the bare
   message, still with `isError: true`. The message is unchanged inside `error`
   (ADR `non-interactive-login`).
+- With no session, a read's error says "Not signed in" instead of "Session
+  expired".
+- Over a live `auth_login` session, a CLI sign-in asks for `nemo auth logout`
+  first: nemo cannot tell which account the browser used. For the same reason,
+  `auth_login` never lifts a login block.
 
 ## [0.3.0] — 2026-10-16
 
