@@ -38,11 +38,11 @@ session is dead (rare: Vector renews the token, ADR-005).
     a token cached before this change), is an error that says logout, then login.
 - **The rejection latch: `<NEMO_HOME>/login-blocked.json`** (mode `0600`). It
   holds one entry per user, `{ user, at, status }`, and no secret.
-  - **Trips** on any `4xx` from `SignIn` except `429`, from any source, including
-    the prompt. Vector's wrong-password response is unobserved
-    (`docs/vector-contract/auth.md`), so this errs toward over-blocking. Never
-    on a `5xx`, a `429`, a timeout or a network error, where Vector did not judge
-    the password.
+  - **Trips** on a `4xx` from `SignIn` other than `408` / `429`, from any source,
+    including the prompt. Vector's wrong-password response is unobserved
+    (`docs/vector-contract/auth.md`), so this errs toward over-blocking. Never on
+    a `5xx`, a `408` / `429`, a timeout or a network error, where Vector did not
+    judge the password.
   - **Effect:** while it exists for a user, the env and stdin logins refuse with
     `LoginBlockedError` (a `LoginFailedError`, exit code 3) **without contacting
     Vector**. The live-token check runs first, so a latched user whose token is

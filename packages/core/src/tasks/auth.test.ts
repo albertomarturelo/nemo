@@ -220,6 +220,7 @@ describe('the rejection latch (ADR non-interactive-login)', () => {
 
   it.each([
     ['a 5xx', () => ({ status: 503, text: 'down' }), LoginFailedError],
+    ['a 408 (a timeout)', () => ({ status: 408, text: 'request timeout' }), LoginFailedError],
     ['a 429', () => ({ status: 429, text: 'slow down' }), ApiError],
   ])('%s never trips it (Vector did not judge the password)', async (_l, reply, kind) => {
     const latch = new MemoryLoginLatch();

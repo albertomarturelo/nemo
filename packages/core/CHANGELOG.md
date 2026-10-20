@@ -29,8 +29,9 @@ All notable changes to the core package are documented here. The format follows
     `login_blocked`) without contacting Vector, after the live-token check.
   - A successful prompt sign-in clears that user's entry. A browser sign-in never
     clears one, since its account is unknown.
-- `LoginRejectedError` (type `login_rejected`) for a non-429 `4xx` from `SignIn`,
-  and `LoginBlockedError` (type `login_blocked`). Both are `LoginFailedError`s.
+- `LoginRejectedError` (type `login_rejected`) for a `4xx` from `SignIn` other than
+  `408` / `429`, and `LoginBlockedError` (type `login_blocked`). Both are
+  `LoginFailedError`s.
 - `unblock(rt, { user? })` on `./cli`: lifts one user's entry or all of them;
   audited as `auth.unblock`.
 - `authStatus` returns `loginBlocked: LatchEntry[]`.
@@ -58,9 +59,9 @@ All notable changes to the core package are documented here. The format follows
   expired". Its type is still `not_authenticated`.
 - **Breaking:** `Runtime` requires `latch: LoginLatch`. `createNodeRuntime` and
   `testing.fakeRuntime` supply one.
-- `SignIn` failures are classified: a non-429 `4xx` is `LoginRejectedError`, a
-  `429` is `ApiError(429)` (type `rate_limited`), and a `5xx` stays
-  `LoginFailedError`.
+- `SignIn` failures are classified: a `4xx` other than `408` / `429` is
+  `LoginRejectedError`, a `429` is `ApiError(429)` (type `rate_limited`), and a
+  `408` or `5xx` stays `LoginFailedError`.
 - `AuditEntry.result` gains `'blocked'`, for a latch refusal.
 
 ## [0.3.0] — 2026-10-16

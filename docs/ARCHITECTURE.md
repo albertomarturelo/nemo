@@ -123,8 +123,8 @@ A `type` is never renamed. A caller treats one it does not know as `unexpected`.
 | --- | --- | --- |
 | `not_authenticated` | No cached token (`NotAuthenticatedError`) | 2 |
 | `session_expired` | Renewal failed (`SessionExpiredError`) | 2 |
-| `login_failed` | Any other sign-in failure: a `SignIn` `5xx`, an empty or missing password, an abandoned browser sign-in (`LoginFailedError`) | 3 |
-| `login_rejected` | Vector refused the password: a non-429 `4xx` from `SignIn` (`LoginRejectedError`). Trips the latch | 3 |
+| `login_failed` | Any other sign-in failure: a `SignIn` `5xx` or `408`, an empty or missing password, an abandoned browser sign-in (`LoginFailedError`) | 3 |
+| `login_rejected` | Vector refused the password: a `4xx` from `SignIn` other than `408` / `429` (`LoginRejectedError`). Trips the latch | 3 |
 | `login_blocked` | The latch refused an unattended sign-in without contacting Vector (`LoginBlockedError`) | 3 |
 | `rate_limited` | A portal `429` (`ApiError`), `SignIn` included | 1 |
 | `api_error` | Any other portal non-2xx (`ApiError`) | 1 |

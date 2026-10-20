@@ -15,9 +15,9 @@ import type { Runtime } from '../seams/index.js';
 /** Exchange explicit credentials for a bearer token via the SignIn endpoint. The
  *  credentials are passed in by the caller (`login`) and never written to disk
  *  (ADR-006). The failure kind decides the rejection latch (ADR
- *  `non-interactive-login`): a non-429 `4xx` means Vector judged the password and
- *  refused it (`LoginRejectedError`, which trips the latch); a `429` is rate
- *  limiting and a `5xx` a server fault, where the password was never judged. */
+ *  `non-interactive-login`): a `4xx` means Vector judged the password and refused it
+ *  (`LoginRejectedError`, which trips the latch) — except a `408` (a timeout) and a
+ *  `429` (rate limiting), which like a `5xx` mean the password was never judged. */
 export async function signIn(rt: Runtime, username: string, password: string): Promise<string> {
   const res = await rt.http.send({
     method: 'POST',
@@ -28,8 +28,8 @@ export async function signIn(rt: Runtime, username: string, password: string): P
   if (res.status >= 400) {
     const message = `SignIn failed (${res.status} ${res.statusText}): ${await res.text()}`;
     if (res.status === 429) throw new ApiError(429, message);
-    if (res.status < 500) throw new LoginRejectedError(res.status, message);
-    throw new LoginFailedError(message);
+    if (res.status === 408 || res.status >= 500) throw new LoginFailedError(message);
+    throw new LoginRejectedError(res.status, message);
   }
   const token = tokenFromSignIn(await res.json());
   if (token === null) {

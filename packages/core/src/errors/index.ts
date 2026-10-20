@@ -25,7 +25,8 @@ export class SessionExpiredError extends NotAuthenticatedError {
 /** The SignIn endpoint rejected the supplied credentials. Exit code 3. */
 export class LoginFailedError extends NemoError {}
 
-/** Vector judged the password and refused it: any non-429 `4xx` from `SignIn`. Its
+/** Vector judged the password and refused it: a `4xx` from `SignIn` other than `408`
+ *  (timeout) and `429` (rate limiting). Its
  *  wrong-password response is unobserved, so every such status counts, which errs
  *  toward over-blocking. It trips the rejection latch (ADR `non-interactive-login`). */
 export class LoginRejectedError extends LoginFailedError {
