@@ -19,7 +19,7 @@ jobs:
     name: Build + Lint + Format + Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # No `version:` here — action-setup reads it from package.json
       # `packageManager` (pnpm@10.x), the single source of truth.
@@ -51,7 +51,7 @@ jobs:
     # Pure git/bash checks — no install needed, so this gate is green from the
     # first commit, before any dependency lands.
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: ADR index integrity
         # Every docs/decisions ADR — numbered NNN-*.md (legacy) or YYYY-MM-DD-<slug>.md —
