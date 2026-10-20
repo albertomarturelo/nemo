@@ -67,7 +67,10 @@ routine's job, with the user's approval (§ 6).
 
 1. `nemo auth status`. If `loginBlocked` lists the account's email, **stop and notify the
    user**: Vector rejected that password and a person must fix it. Do nothing else in this
-   run.
+   run. Tell them the two steps, both in the takeover terminal: store the right password
+   again (`skill-init.md` step 4), then
+   `NEMO_HOME=/workspace/.nemo nemo auth unblock --user <email>`. A browser sign-in does not
+   lift the block.
 2. Run the command you need.
 3. If it fails with `type` `not_authenticated` or `session_expired`, log in, then rerun the
    command **once**:
@@ -189,8 +192,8 @@ Cash movements, grouped per caja (`buckets`), each classified by `kind`: `divide
 
 ### `nemo instruments local [--search <text>] [--page <n>] [--limit <n>]`
 
-Chilean instruments, paged (default page 1, 30 per page). `--search` filters by nemotécnico.
-Use it to find the `idInstrumento` of a nemotécnico.
+Chilean instruments, paged (default page 1, 30 per page). `--search` filters by nemotécnico
+and also returns partial matches. Use it to find the `idInstrumento` of a nemotécnico.
 
 ```json
 { "market": "local", "page": 1, "pageSize": 30, "total": 1,
@@ -217,7 +220,8 @@ the daily returns), `min` and `max` (closes).
 ```
 
 The daily change of the price watch is `(last close − previous close) / previous close`, from
-the last two `points`.
+the last two `points`. Evaluate each close once: skip the item when the last point's date is
+not newer than its `ultimoCierre` in memory (`prompt.md` § Routines, C).
 
 **Commands you must NOT run**, even though the CLI has them: `nemo auth unblock`,
 `nemo auth login` with `--password-env`, `--browser` or without `--password-stdin`, and

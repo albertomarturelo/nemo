@@ -83,10 +83,14 @@ session loop. On a login error it stops and tells me. It never asks me for a pas
 **C. "Vigilancia de precios": Monday to Friday at 18:45.**
 For each item of `nemo.watchlist` in memory, one after the other:
 1. `nemo instruments prices --id <idInstrumento>`.
-2. Compare the last close with the one before it. Tell me when the daily change reaches the
+2. If the date of the last point is not newer than the item's `ultimoCierre` in memory, skip
+   the item: there was no trading day since the last check (a holiday), and that close was
+   already evaluated.
+3. Compare the last close with the one before it. Tell me when the daily change reaches the
    item's threshold (`umbral`), or when the last close is the `max` or `min` of the series
    (a one-year high or low).
-3. If nothing crossed a threshold, send nothing.
+4. Set the item's `ultimoCierre` to the date of the last point.
+If nothing crossed a threshold, send nothing.
 
 **D. "Actualizar conocimiento nemo": Mondays at 10:00.**
 1. `npm view @albertomarturelo/nemo-cli version`. Compare it with `nemo.version` in memory.

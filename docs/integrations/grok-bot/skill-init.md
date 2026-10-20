@@ -150,8 +150,10 @@ For each nemotécnico of step 2:
 nemo instruments local --search <NEMOTECNICO>
 ```
 
-Pick the item whose `nemotecnico` matches exactly, and record its `idInstrumento`. If none
-matches, or several do, show the user the candidates and ask. Then run
+The search also returns partial matches, 30 per page. Pick the item whose `nemotecnico`
+matches exactly, and record its `idInstrumento`. If page 1 has no exact match and `total` is
+larger than the page, look at the next pages (`--page 2`, …). If none matches, or several
+do, show the user the candidates and ask. Then run
 `nemo instruments prices --id <idInstrumento>` once and show the user the last close, to
 confirm it is the right instrument.
 
@@ -159,7 +161,8 @@ confirm it is the right instrument.
 
 Save in memory:
 - `nemo.account`: `{ email, moneda, canal }`;
-- `nemo.watchlist`: `[{ nemotecnico, idInstrumento, umbral }]`;
+- `nemo.watchlist`: `[{ nemotecnico, idInstrumento, umbral, ultimoCierre }]`, with
+  `ultimoCierre` set to the date of the last point you showed the user in step 7;
 - `nemo.version`;
 - `nemo.initDate`;
 - `nemo.knowledge`: the tag the saved skills come from, `cli-v<nemo.version>`.
@@ -179,14 +182,16 @@ one:
 - any command containing `npm i -g` or `npm install -g`;
 - any command containing `--password-env`;
 - any command containing `| nemo auth login`;
-- any command that mentions `.nemo-secrets` **together with** a reader or mover: `cat`,
-  `less`, `more`, `head`, `tail`, `grep`, `echo`, `printf`, `cp`, `mv`, `base64`, `xxd`,
-  `od`, `curl`, `scp`.
+- any command that runs a reader or mover on a path under `.nemo-secrets`: `cat`, `less`,
+  `more`, `head`, `tail`, `grep`, `echo`, `printf`, `cp`, `mv`, `base64`, `xxd`, `od`,
+  `curl`, `scp`.
 
   Do **not** write a rule that catches every command mentioning that folder. The routines'
   own login (`nemo auth login … --password-stdin < /workspace/.nemo-secrets/<email>`)
   mentions it too, and approvals for unattended work expire after about 10 minutes, so a
-  routine would stall on every login.
+  routine would stall on every login. For the same reason, the rule matches the command
+  word, not a substring of the path: the secrets file is named after the email, and an
+  email such as `catalina@example.com` contains `cat`.
 
 Also tell them plainly about the residual risk:
 - The Grok Bot computer is shared by **all** of their Bots, so another Bot on the account

@@ -56,12 +56,14 @@ shell, a scheduler and memory can use them.
      password in an environment variable the Bot sets);
    - any command that pipes into `nemo auth login` (`| nemo auth login`): the only password
      source the Bot uses is the file, redirected with `<`;
-   - any command that mentions `.nemo-secrets` **together with** a reader or mover: `cat`,
-     `less`, `more`, `head`, `tail`, `grep`, `echo`, `printf`, `cp`, `mv`, `base64`, `xxd`,
-     `od`, `curl`, `scp`.
+   - any command that runs a reader or mover on a path under `.nemo-secrets`: `cat`, `less`,
+     `more`, `head`, `tail`, `grep`, `echo`, `printf`, `cp`, `mv`, `base64`, `xxd`, `od`,
+     `curl`, `scp`.
 
    Not the login itself, which mentions that folder too: an unattended approval expires after
-   about 10 minutes, and the routine would stall.
+   about 10 minutes, and the routine would stall. For the same reason, match the command
+   word, not a substring of the path: the secrets file is named after your email, and an
+   email such as `catalina@example.com` contains `cat`.
 
 ## Security model, and what it does not cover
 
