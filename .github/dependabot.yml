@@ -1,0 +1,29 @@
+# Weekly version updates, so the SHA-pinned actions and the workspace's dependencies
+# do not rot (ADR repository-hardening). Minor and patch bumps arrive as one grouped PR
+# per ecosystem; a major bump gets its own PR, since it can break the contract.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: America/Santiago
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: America/Santiago
+    commit-message:
+      prefix: chore(ci)
+    groups:
+      actions-minor-patch:
+        update-types: [minor, patch]
