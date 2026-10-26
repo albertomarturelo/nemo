@@ -36,7 +36,7 @@
   ],
   "dependencies": {
     "@albertomarturelo/nemo-core": "workspace:^",
-    "@modelcontextprotocol/sdk": "^1.31.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "playwright": "^1.64.1",
     "zod": "^3.25.0"
   },
